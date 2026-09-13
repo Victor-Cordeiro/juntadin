@@ -1,0 +1,96 @@
+/* Juntadin — design tokens
+   Destino sugerido: packages/ui/tokens.css (e espelho em tokens.ts para React Native)
+   Todos os pares de texto marcados "AA" foram conferidos contra WCAG 2.1 (>= 4.5:1). */
+
+:root {
+  /* ---- Verde-cofre: a cor da marca ---- */
+  --jd-verde-900: #06372C;
+  --jd-verde-800: #0B5F4C; /* marca, logotipo, títulos. Branco por cima = 7.6:1 (AA) */
+  --jd-verde-600: #0E7A63; /* ação primária. Branco por cima = 5.3:1 (AA) */
+  --jd-verde-400: #3FB795;
+  --jd-verde-200: #B9E5D6;
+  --jd-verde-100: #DCEFE7; /* superfície "confirmado" */
+  --jd-verde-050: #EEF7F3;
+
+  /* ---- Ouro-dindin: o acento. Uma cor, um trabalho ---- */
+  --jd-ouro-500: #FFB020; /* só preenchimento. Grafite por cima = 9.0:1 (AA) */
+  --jd-ouro-100: #FFEFCE;
+  --jd-ouro-texto: #8F5A00; /* 5.8:1 no branco (AA) */
+
+  /* ---- Neutros ---- */
+  --jd-papel:      #F4F7F5; /* fundo de tela */
+  --jd-superficie: #FFFFFF; /* cartões e listas */
+  --jd-borda:      #DCE5E0;
+  --jd-tinta:      #14211D; /* texto principal, 15:1 (AAA) */
+  --jd-tinta-70:   #5A6B64; /* texto secundário, 5.7:1 (AA) */
+  --jd-tinta-40:   #8B9993; /* apenas ícones e placeholders */
+
+  /* ---- Semânticos do livro financeiro ---- */
+  --jd-entrou:   #0E7A63; /* receita confirmada */
+  --jd-saiu:     #14211D; /* despesa = tinta, não vermelho. Gastar não é erro. */
+  --jd-atencao:  #8F5A00; /* texto de alerta de orçamento */
+  --jd-atencao-fundo: #FFEFCE;
+  --jd-moeda:    #FFB020; /* alias semantico: dinheiro guardado, metas, pilha */
+  --jd-deficit:  #B33A2B; /* só para saldo projetado negativo, 5.9:1 (AA) */
+  --jd-previsto: #5A6B64; /* acompanha SEMPRE borda tracejada — nunca só a cor */
+
+  /* ---- Tipografia ---- */
+  --jd-fonte-marca: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --jd-fonte-ui:    'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --jd-fonte-mono:  'IBM Plex Mono', ui-monospace, monospace;
+
+  --jd-txt-heroi:    clamp(40px, 9vw, 56px); /* "R$ 42" do painel */
+  --jd-txt-titulo:   28px;
+  --jd-txt-secao:    20px;
+  --jd-txt-corpo:    16px;
+  --jd-txt-apoio:    14px;
+  --jd-txt-legenda:  12px;
+
+  --jd-altura-densa:   1.15; /* números e títulos */
+  --jd-altura-leitura: 1.55; /* corpo */
+
+  /* ---- Forma, espaço, elevação ---- */
+  --jd-r-pilula: 999px; /* botões e chips */
+  --jd-r-cartao: 20px;
+  --jd-r-campo:  12px;
+  --jd-r-icone:  22.7%; /* squircle do app icon (232/1024) */
+
+  --jd-e1: 2px;  --jd-e2: 4px;  --jd-e3: 8px;
+  --jd-e4: 12px; --jd-e5: 16px; --jd-e6: 24px;
+  --jd-e7: 32px; --jd-e8: 48px;
+
+  --jd-sombra-cartao: 0 1px 2px rgba(6,55,44,.05), 0 8px 24px -12px rgba(6,55,44,.18);
+  --jd-toque-min: 44px;
+}
+
+/* Valores em dinheiro: sempre alinhados em coluna */
+.jd-valor {
+  font-family: var(--jd-fonte-ui);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0;
+}
+
+/* Número-herói do painel */
+.jd-valor-heroi {
+  font-family: var(--jd-fonte-marca);
+  font-weight: 600;
+  font-size: var(--jd-txt-heroi);
+  line-height: var(--jd-altura-densa);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Identificadores curtos: "desfazer A7K2" */
+.jd-id { font-family: var(--jd-fonte-mono); letter-spacing: .04em; text-transform: uppercase; }
+
+/* "Previsto" nunca depende só de cor */
+.jd-previsto {
+  color: var(--jd-previsto);
+  border: 1px dashed var(--jd-borda);
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

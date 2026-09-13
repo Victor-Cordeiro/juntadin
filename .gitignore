@@ -1,0 +1,16 @@
+node_modules/
+.pnpm-store/
+.expo/
+dist/
+web-build/
+coverage/
+.env
+.env.*
+!.env.example
+supabase/.branches/
+supabase/.temp/
+tmp/
+*.log
+files.zip
+.DS_Store
+Thumbs.db
