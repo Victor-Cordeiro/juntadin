@@ -4,7 +4,24 @@ export type SignUpInput = Readonly<{ name: string; phone: string; email: string;
 export type SignInInput = Readonly<{ email: string; password: string }>;
 export type FinancialCycle = Readonly<{ startDay: number; timezone: 'America/Sao_Paulo' }>;
 export type AccountDraft = Readonly<{ name: string; type: 'checking' | 'cash' | 'credit'; includesPix: boolean; initialBalanceCents: bigint }>;
-export type TransactionProposal = Readonly<{ id: string; kind: 'expense'; description: string; amountCents: bigint; accountName: string; category: string; localDate: string; status: 'proposed' }>;
+export type TransactionKind = 'expense' | 'income';
+export type TransactionParty = 'me' | 'partner' | 'shared';
+export type PaymentMethod = 'bank_account' | 'credit_card' | 'cash' | 'pix';
+export type Recurrence = Readonly<{ frequency: 'monthly'; endDate?: string }>;
+export type TransactionProposal = Readonly<{
+  id: string;
+  kind: TransactionKind;
+  description: string;
+  amountCents: bigint;
+  accountName: string;
+  category: string;
+  localDate: string;
+  party: TransactionParty;
+  paymentMethod: PaymentMethod;
+  note?: string;
+  recurrence?: Recurrence;
+  status: 'proposed';
+}>;
 export type OnboardingState = Readonly<{ cycle?: FinancialCycle; account?: AccountDraft; completed: boolean; trialEndsAt?: string }>;
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
