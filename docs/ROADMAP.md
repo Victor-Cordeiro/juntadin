@@ -18,8 +18,9 @@ Objetivo: preparar um projeto reproduzível e reduzir risco antes do ledger.
 - [x] Consolidar especificação e identidade visual.
 - [x] Definir monorepo pnpm e cliente universal Expo.
 - [x] Registrar ADRs iniciais.
-- [ ] Configurar lint, formatação, testes e CI.
-- [ ] Criar duas ou três telas navegáveis para entrevistas.
+- [x] Configurar lint, TypeScript e testes locais.
+- [x] Criar o primeiro fluxo navegável para entrevistas.
+- [ ] Configurar CI no GitHub.
 - [ ] Realizar 12 entrevistas e testar o protótipo com 8 pessoas.
 - [ ] Fechar decisões abertas: Meta/número, margem da projeção, conta Pix, e-mail, região Supabase, suporte e política preliminar de privacidade.
 
@@ -89,4 +90,3 @@ Saída: beta fechada com 25 usuários; depois beta pública limitada a 100 ativa
 2. Antes do beta: ledger, cartões, parcelas e transferências reconciliam.
 3. Antes de tráfego: ativação, precisão e tempos dentro das metas.
 4. Antes de cobrar: retenção D30 e intenção de pagamento justificam preço e escopo.
-

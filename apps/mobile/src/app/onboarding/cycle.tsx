@@ -1,0 +1,10 @@
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BrandMark, Button, PageHeader, Screen, uiStyles } from '@/components/juntadin-ui';
+import { usePrototype } from '@/state/prototype-context';
+import { font, palette } from '@/theme/tokens';
+
+const days = [1, 5, 10, 15, 20, 25];
+export default function CycleScreen() { const router = useRouter(); const { onboarding, setCycle } = usePrototype(); const [day, setDay] = useState(onboarding.cycle?.startDay ?? 1); return <Screen><BrandMark withName /><PageHeader eyebrow="1 de 2" title="Quando seu mês começa?" subtitle="Escolha o dia em que sua renda principal costuma cair. Você poderá ajustar depois." /><View style={styles.grid}>{days.map((item) => <Pressable key={item} accessibilityRole="radio" accessibilityState={{ selected: day === item }} onPress={() => setDay(item)} style={[styles.day, day === item && styles.daySelected]}><Text style={[styles.dayText, day === item && styles.dayTextSelected]}>Dia {item}</Text></Pressable>)}</View><View style={uiStyles.card}><Text style={styles.cardTitle}>Seu ciclo</Text><Text style={uiStyles.body}>Vai do dia {day} até a véspera do dia {day} seguinte. Faturas e parcelas continuam usando suas próprias datas.</Text></View><Button label="Continuar" onPress={() => { setCycle({ startDay: day, timezone: 'America/Sao_Paulo' }); router.push('/onboarding/account'); }} /></Screen>; }
+const styles = StyleSheet.create({ grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, day: { minWidth: 88, minHeight: 48, borderRadius: 999, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }, daySelected: { backgroundColor: palette.greenVault, borderColor: palette.greenVault }, dayText: { color: palette.ink, fontFamily: font.medium }, dayTextSelected: { color: 'white' }, cardTitle: { color: palette.ink, fontFamily: font.display, fontSize: 19 } });

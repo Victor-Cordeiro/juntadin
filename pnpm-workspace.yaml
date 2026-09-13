@@ -2,6 +2,9 @@ packages:
   - apps/*
   - packages/*
 
+allowBuilds:
+  unrs-resolver: true
+
 onlyBuiltDependencies:
   - '@swc/core'
-
+  - unrs-resolver

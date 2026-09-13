@@ -1,98 +1,33 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BrandMark, Button, Screen } from '@/components/juntadin-ui';
+import { font, palette } from '@/theme/tokens';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+export default function WelcomeScreen() {
+  const router = useRouter();
+  return <Screen contentStyle={styles.content}>
+    <View style={styles.top}><BrandMark withName /></View>
+    <View style={styles.hero}>
+      <View style={styles.coinStack}><View style={styles.coin} /><View style={styles.coinMiddle} /><View style={styles.coinTop} /></View>
+      <Text accessibilityRole="header" style={styles.title}>Seu mês financeiro, explicado.</Text>
+      <Text style={styles.subtitle}>Mande o gasto. Confirme. Veja o mês inteiro.</Text>
+      <View style={styles.trust}><Text style={styles.trustText}>Não conectamos ao seu banco e não movimentamos seu dinheiro.</Text></View>
+    </View>
+    <View style={styles.actions}>
+      <Button label="Criar minha conta" onPress={() => router.push('/auth/signup')} />
+      <Button label="Já tenho conta" variant="secondary" onPress={() => router.push('/auth/login')} />
+      <Text style={styles.note}>60 dias completos, sem cartão.</Text>
+    </View>
+  </Screen>;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  content: { justifyContent: 'space-between', minHeight: 680 }, top: { alignItems: 'flex-start' }, hero: { alignItems: 'center', gap: 16 },
+  title: { fontFamily: font.display, fontSize: 42, lineHeight: 47, letterSpacing: -1, textAlign: 'center', color: palette.ink, maxWidth: 520 },
+  subtitle: { fontFamily: font.regular, fontSize: 18, lineHeight: 28, textAlign: 'center', color: palette.inkMuted },
+  trust: { backgroundColor: palette.mint, borderRadius: 16, padding: 16, marginTop: 8, maxWidth: 460 }, trustText: { fontFamily: font.medium, fontSize: 14, lineHeight: 21, textAlign: 'center', color: palette.greenVault },
+  actions: { gap: 12 }, note: { fontFamily: font.regular, color: palette.inkMuted, textAlign: 'center', fontSize: 13 },
+  coinStack: { width: 112, height: 96, justifyContent: 'flex-end', alignItems: 'center', marginBottom: 4 }, coin: { width: 92, height: 24, borderRadius: 99, backgroundColor: palette.greenVault },
+  coinMiddle: { position: 'absolute', bottom: 18, width: 92, height: 24, borderRadius: 99, backgroundColor: palette.greenAction }, coinTop: { position: 'absolute', bottom: 36, width: 92, height: 28, borderRadius: 99, backgroundColor: palette.gold, borderWidth: 5, borderColor: palette.greenVault },
 });
