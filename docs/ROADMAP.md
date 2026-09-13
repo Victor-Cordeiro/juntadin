@@ -20,7 +20,7 @@ Objetivo: preparar um projeto reproduzível e reduzir risco antes do ledger.
 - [x] Registrar ADRs iniciais.
 - [x] Configurar lint, TypeScript e testes locais.
 - [x] Criar o primeiro fluxo navegável para entrevistas.
-- [ ] Configurar CI no GitHub.
+- [x] Configurar CI no GitHub.
 - [ ] Realizar 12 entrevistas e testar o protótipo com 8 pessoas.
 - [ ] Fechar decisões abertas: Meta/número, margem da projeção, conta Pix, e-mail, região Supabase, suporte e política preliminar de privacidade.
 
@@ -28,10 +28,11 @@ Saída: projeto instalável, CI verde, protótipo testado e backlog P0 priorizad
 
 ## Fase 1 - Identidade, autenticação e isolamento
 
-- Design tokens compartilhados, fontes e componentes base acessíveis.
-- Cadastro, login por link/código, onboarding e ciclo financeiro.
-- Espaço pessoal, espaço de casal vazio e políticas RLS.
-- Testes provando que um usuário não lê ou altera dados de outro.
+- [x] Design tokens compartilhados, fontes e componentes base acessíveis.
+- [x] Cadastro, confirmação, login por senha, recuperação, sessão persistente e logout.
+- [x] Perfil, espaço pessoal automático e políticas RLS.
+- [x] Testes provando que um usuário não lê dados de outro.
+- [ ] Espaço de casal e fluxo de convite.
 
 Saída: conta criada, onboarding concluído e isolamento demonstrado.
 

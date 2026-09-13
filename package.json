@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "pnpm --filter @juntadin/mobile start",
     "dev:web": "pnpm --filter @juntadin/mobile web",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:test": "supabase test db",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint"
@@ -14,6 +18,7 @@
     "node": ">=24"
   },
   "devDependencies": {
+    "supabase": "^2.117.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.0"
   }

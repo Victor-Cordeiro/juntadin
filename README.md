@@ -4,16 +4,34 @@ Planejamento financeiro pessoal e para casais, com registro assistido pelo Whats
 
 ## Estado atual
 
-O projeto está na Fase 0: fundação técnica e validação. A primeira implementação usa Expo + React Native + Expo Router para Android, iOS e web, com pacotes TypeScript compartilhados. O backend será Supabase/Postgres com Row Level Security.
+O projeto está na transição da Fase 0 para a Fase 1. A aplicação usa Expo + React Native + Expo Router para Android, iOS e web, com Supabase Auth, Postgres e Row Level Security no backend.
 
 ## Começar localmente
 
-Pré-requisitos: Node.js 24+, pnpm 11+ e Git.
+Pré-requisitos: Node.js 24+, pnpm 11+, Git e Docker Desktop.
 
 ```bash
 pnpm install
-pnpm dev
+pnpm supabase:start
+Copy-Item apps/mobile/.env.example apps/mobile/.env.local
+pnpm dev:web
 ```
 
-Leia [docs/ROADMAP.md](docs/ROADMAP.md) antes de implementar funcionalidades e registre decisões estruturais em `docs/adr/`.
+Depois de iniciar o Supabase, copie a `Publishable key` exibida pelo comando para `EXPO_PUBLIC_SUPABASE_ANON_KEY` em `apps/mobile/.env.local`. O endereço local padrão da API já está no exemplo. E-mails de confirmação e recuperação podem ser abertos no Mailpit em `http://127.0.0.1:54324`.
 
+Nunca coloque `service_role`, `secret key` ou a senha do banco em variáveis `EXPO_PUBLIC_*`: tudo o que usa esse prefixo é incorporado ao cliente.
+
+## Validação
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm dlx expo-doctor@latest apps/mobile
+pnpm --filter @juntadin/mobile exec expo export --platform web --output-dir dist
+pnpm supabase:test
+```
+
+O workflow `.github/workflows/ci.yml` executa esses controles em cada pull request e push para `main`.
+
+Leia [docs/ROADMAP.md](docs/ROADMAP.md) antes de implementar funcionalidades e registre decisões estruturais em `docs/adr/`.
