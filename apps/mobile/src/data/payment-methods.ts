@@ -1,0 +1,18 @@
+export type PaymentMethodOption = Readonly<{ id: string; name: string; icon: string }>;
+
+export const presetPaymentMethods: PaymentMethodOption[] = [
+  { id: 'credit_card', name: 'Cartão', icon: 'credit_card' },
+  { id: 'cash', name: 'Dinheiro', icon: 'payments' },
+  { id: 'bank_account', name: 'Conta bancária', icon: 'account_balance' },
+  { id: 'other', name: 'Outro', icon: 'more_horiz' },
+];
+
+// A curated set for custom payment methods, matching the icon language used for categories.
+export const paymentMethodIcons = [
+  'credit_card', 'payments', 'account_balance', 'account_balance_wallet', 'savings',
+  'qr_code_2', 'smartphone', 'wallet', 'redeem', 'currency_exchange', 'receipt_long', 'more_horiz',
+];
+
+export function findPaymentMethod(name: string, custom: PaymentMethodOption[]): PaymentMethodOption | undefined {
+  return [...presetPaymentMethods, ...custom].find((method) => method.name === name);
+}
