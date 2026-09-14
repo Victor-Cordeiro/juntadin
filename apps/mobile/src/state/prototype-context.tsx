@@ -4,17 +4,18 @@ import { appendUniqueById } from '@juntadin/domain';
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { authService, type AuthUser } from '@/services/auth';
+import type { Category, CategoryKind } from '@/data/categories';
 
 export type ConfirmedTransaction = Omit<TransactionProposal, 'status'> & { status: 'confirmed'; confirmedAt: string };
-type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; customCategories: { expense: string[]; income: string[] } };
-type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; signIn(input: SignInInput): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: 'expense' | 'income', name: string): void; cancelProposal(): void; confirmProposal(): void };
+type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; customCategories: { expense: Category[]; income: Category[] } };
+type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; signIn(input: SignInInput): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; cancelProposal(): void; confirmProposal(): void };
 
 const Context = createContext<Value | null>(null);
 const emptyState: UserState = { onboarding: { completed: false }, transactions: [], customCategories: { expense: [], income: [] } };
 const storageKey = (userId: string) => `@juntadin/prototype-v2/${userId}`;
 
 function serializeState(value: UserState): string { return JSON.stringify(value, (_key, item: unknown) => typeof item === 'bigint' ? { __juntadinBigInt: item.toString() } : item); }
-function parseState(raw: string): UserState { const parsed = JSON.parse(raw, (_key, item: unknown) => item && typeof item === 'object' && '__juntadinBigInt' in item ? BigInt(String((item as { __juntadinBigInt: unknown }).__juntadinBigInt)) : item) as Partial<UserState>; return { onboarding: parsed.onboarding ?? emptyState.onboarding, transactions: parsed.transactions ?? [], customCategories: parsed.customCategories ?? emptyState.customCategories }; }
+function parseState(raw: string): UserState { const parsed = JSON.parse(raw, (_key, item: unknown) => item && typeof item === 'object' && '__juntadinBigInt' in item ? BigInt(String((item as { __juntadinBigInt: unknown }).__juntadinBigInt)) : item) as Partial<UserState>; const customCategories = parsed.customCategories ?? emptyState.customCategories; const normalize = (items: unknown[], kind: CategoryKind): Category[] => items.map((item, index) => typeof item === 'string' ? ({ id: `legacy-${kind}-${index}`, name: item, icon: '✦', color: '#0E7A63' }) : item as Category); return { onboarding: parsed.onboarding ?? emptyState.onboarding, transactions: parsed.transactions ?? [], customCategories: { expense: normalize(customCategories.expense ?? [], 'expense'), income: normalize(customCategories.income ?? [], 'income') } }; }
 
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [hydrated, setHydrated] = useState(false); const [session, setSession] = useState<AuthUser | null>(null); const [pendingUser, setPendingUser] = useState<AuthUser | null>(null); const [onboarding, setOnboarding] = useState<OnboardingState>(emptyState.onboarding); const [proposal, setProposal] = useState<TransactionProposal | null>(null); const [transactions, setTransactions] = useState<ConfirmedTransaction[]>([]); const [customCategories, setCustomCategories] = useState(emptyState.customCategories);
@@ -41,7 +42,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setCycle(cycle) { setOnboarding((current) => ({ ...current, cycle })); },
     finishOnboarding(account) { const trial = new Date(); trial.setDate(trial.getDate() + 60); setOnboarding((current) => ({ ...current, account, completed: true, trialEndsAt: trial.toISOString() })); },
     setProposal, cancelProposal() { setProposal(null); },
-    addCustomCategory(kind, name) { const clean = name.trim(); if (!clean) return; setCustomCategories((current) => current[kind].some((item) => item.toLocaleLowerCase('pt-BR') === clean.toLocaleLowerCase('pt-BR')) ? current : { ...current, [kind]: [...current[kind], clean] }); },
+    addCustomCategory(kind, category) { setCustomCategories((current) => current[kind].some((item) => item.name.toLocaleLowerCase('pt-BR') === category.name.toLocaleLowerCase('pt-BR')) ? current : { ...current, [kind]: [...current[kind], category] }); },
     confirmProposal() { if (!proposal) return; setTransactions((current) => appendUniqueById(current, { ...proposal, status: 'confirmed', confirmedAt: new Date().toISOString() })); setProposal(null); },
   }), [customCategories, hydrated, loadUserState, onboarding, pendingUser, proposal, session, transactions]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
