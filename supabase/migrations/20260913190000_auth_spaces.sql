@@ -64,7 +64,7 @@ declare
   user_name text;
   user_phone text;
 begin
-  if new.email_confirmed_at is null or (tg_op = 'UPDATE' and old.email_confirmed_at is not null) then
+  if tg_op = 'UPDATE' and old.email_confirmed_at is not null then
     return new;
   end if;
 
@@ -106,4 +106,3 @@ create policy space_members_select_member on public.space_members for select to 
 
 grant select, update on public.profiles to authenticated;
 grant select on public.spaces, public.space_members to authenticated;
-

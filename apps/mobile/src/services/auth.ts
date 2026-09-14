@@ -52,7 +52,6 @@ export const authService: AuthService = {
     if (Object.keys(validateSignIn(input)).length) throw new Error('Confira o e-mail e a senha.');
     const { data, error } = await requireClient().auth.signInWithPassword({ email: input.email.trim().toLowerCase(), password: input.password });
     if (error || !data.user) throw new Error('E-mail ou senha incorretos.');
-    if (!data.user.email_confirmed_at) throw new Error('Confirme seu e-mail antes de entrar.');
     return toAuthUser(data.user);
   },
   async signUp(input) {

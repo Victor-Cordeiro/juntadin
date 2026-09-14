@@ -29,7 +29,7 @@ Saída: projeto instalável, CI verde, protótipo testado e backlog P0 priorizad
 ## Fase 1 - Identidade, autenticação e isolamento
 
 - [x] Design tokens compartilhados, fontes e componentes base acessíveis.
-- [x] Cadastro, confirmação, login por senha, recuperação, sessão persistente e logout.
+- [x] Cadastro, login por senha, recuperação, sessão persistente e logout.
 - [x] Perfil, espaço pessoal automático e políticas RLS.
 - [x] Testes provando que um usuário não lê dados de outro.
 - [ ] Espaço de casal e fluxo de convite.
