@@ -35,7 +35,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<Value>(() => ({ hydrated, session, pendingUser, onboarding, proposal, transactions, customCategories,
     async signIn(input) { setHydrated(false); try { const user = await authService.signIn(input); setSession(user); await loadUserState(user); } finally { setHydrated(true); } },
-    async signUp(input) { setPendingUser(await authService.signUp(input)); },
+    async signUp(input) { const user = await authService.signUp(input); setPendingUser(null); setSession(user); await loadUserState(user); },
     async verifyEmail() { const user = await authService.confirmEmailSession(); setSession(user); setPendingUser(null); await loadUserState(user); },
     async signOut() { await authService.signOut(); setSession(null); setPendingUser(null); setProposal(null); setOnboarding(emptyState.onboarding); setTransactions([]); setCustomCategories(emptyState.customCategories); },
     setCycle(cycle) { setOnboarding((current) => ({ ...current, cycle })); },

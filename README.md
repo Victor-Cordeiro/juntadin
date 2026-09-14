@@ -4,7 +4,7 @@ Planejamento financeiro pessoal e para casais, com registro assistido pelo Whats
 
 ## Estado atual
 
-O projeto está na transição da Fase 0 para a Fase 1. A aplicação usa Expo + React Native + Expo Router para Android, iOS e web, com Supabase Auth, Postgres e Row Level Security no backend.
+O projeto está na transição da Fase 0 para a Fase 1. A aplicação usa Expo + React Native + Expo Router para Android, iOS e web, com Supabase Auth, Postgres e Row Level Security no backend. Nesta fase, o cadastro já libera o acesso imediatamente; a confirmação de e-mail será adicionada quando o fluxo comercial estiver pronto.
 
 ## Começar localmente
 
@@ -17,7 +17,7 @@ Copy-Item apps/mobile/.env.example apps/mobile/.env.local
 pnpm dev:web
 ```
 
-Depois de iniciar o Supabase, copie a `Publishable key` exibida pelo comando para `EXPO_PUBLIC_SUPABASE_ANON_KEY` em `apps/mobile/.env.local`. O endereço local padrão da API já está no exemplo. E-mails de confirmação e recuperação podem ser abertos no Mailpit em `http://127.0.0.1:54324`.
+Depois de iniciar o Supabase, copie a `Publishable key` exibida pelo comando para `EXPO_PUBLIC_SUPABASE_ANON_KEY` em `apps/mobile/.env.local`. O endereço local padrão da API já está no exemplo.
 
 Nunca coloque `service_role`, `secret key` ou a senha do banco em variáveis `EXPO_PUBLIC_*`: tudo o que usa esse prefixo é incorporado ao cliente.
 
