@@ -1,19 +1,15 @@
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Share, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button, Field, Screen } from '@/components/juntadin-ui';
 import { CategoryIcon } from '@/components/category-icon';
-import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
 import { useGoBack } from '@/hooks/use-back';
 import { font, palette } from '@/theme/tokens';
 
 export default function PartnerSettingsScreen() {
-  const router = useRouter();
   const goBack = useGoBack('/settings');
-  const { session } = usePrototype();
   const { settings, update, generateInvite } = useHouseholdSettings();
   const [copied, setCopied] = useState(false);
   const inviteLink = useMemo(() => settings.inviteCode ? `https://app.juntadin.com/convite/${settings.inviteCode}` : '', [settings.inviteCode]);

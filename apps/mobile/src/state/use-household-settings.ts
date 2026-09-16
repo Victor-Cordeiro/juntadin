@@ -50,26 +50,34 @@ const Context = createContext<Value | null>(null);
 export function HouseholdProvider({ children }: PropsWithChildren) {
   const { session } = usePrototype();
   const userId = session?.id;
-  const [settings, setSettings] = useState(initial);
-  const [ready, setReady] = useState(false);
+  // Keyed by the user it belongs to, so switching account never shows the previous
+  // person's settings and the state needs no effect to correct itself afterwards.
+  const [loaded, setLoaded] = useState<{ userId: string; settings: HouseholdSettings } | null>(null);
 
   useEffect(() => {
-    if (!userId) { setSettings(initial); setReady(true); return; }
-    setReady(false);
+    if (!userId) return;
+    let active = true;
     AsyncStorage.getItem(key(userId))
       .then((raw) => {
+        if (!active) return;
         const saved = raw ? JSON.parse(raw) : {};
-        setSettings({ ...initial, ...saved, notifications: { ...initialNotifications, ...(saved.notifications ?? {}) }, categoryLimits: saved.categoryLimits ?? {} });
+        setLoaded({ userId, settings: { ...initial, ...saved, notifications: { ...initialNotifications, ...(saved.notifications ?? {}) }, categoryLimits: saved.categoryLimits ?? {} } });
       })
-      .finally(() => setReady(true));
+      .catch(() => { if (active) setLoaded({ userId, settings: initial }); });
+    return () => { active = false; };
   }, [userId]);
+
+  const isCurrent = Boolean(userId) && loaded?.userId === userId;
+  const settings = isCurrent && loaded ? loaded.settings : initial;
+  const ready = !userId || isCurrent;
 
   const update = useCallback((changes: Partial<HouseholdSettings>) => {
     if (!userId) return;
-    setSettings((current) => {
-      const next = { ...current, ...changes };
+    setLoaded((current) => {
+      const base = current?.userId === userId ? current.settings : initial;
+      const next = { ...base, ...changes };
       AsyncStorage.setItem(key(userId), JSON.stringify(next)).catch(() => undefined);
-      return next;
+      return { userId, settings: next };
     });
   }, [userId]);
 

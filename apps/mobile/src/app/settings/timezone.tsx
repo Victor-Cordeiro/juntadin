@@ -38,7 +38,7 @@ export default function TimezoneScreen() {
   const goBack = useGoBack('/settings');
   const { settings, update } = useHouseholdSettings();
   const [query, setQuery] = useState('');
-  const zones = useMemo(allZones, []);
+  const zones = useMemo(() => allZones(), []);
 
   const results = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('pt-BR').replace(/\s+/g, '_');

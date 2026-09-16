@@ -1,5 +1,4 @@
 import { parseBRL } from '@juntadin/domain';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -14,7 +13,6 @@ import { useGoBack } from '@/hooks/use-back';
 import { font, palette } from '@/theme/tokens';
 
 export default function CategoryLimitsScreen() {
-  const router = useRouter();
   const goBack = useGoBack('/settings');
   const { transactions, customCategories } = usePrototype();
   const { settings, update } = useHouseholdSettings();

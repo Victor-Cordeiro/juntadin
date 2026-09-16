@@ -2,7 +2,7 @@ import type { RecurrenceFrequency, TransactionKind, TransactionParty } from '@ju
 import { parseBRL } from '@juntadin/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Screen, ScrollGrid, uiStyles } from '@/components/juntadin-ui';
 import { CalendarField } from '@/components/calendar-field';

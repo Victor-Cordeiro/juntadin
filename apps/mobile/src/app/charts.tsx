@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import { CategoryBars, DonutChart, TrendChart, type TrendPoint } from '@/components/charts';
 import { CategoryIcon } from '@/components/category-icon';
 import { Screen } from '@/components/juntadin-ui';
-import { chartPalette, findCategory, presetCategories } from '@/data/categories';
+import { chartPalette, findCategory } from '@/data/categories';
 import { findPaymentMethod, presetPaymentMethods } from '@/data/payment-methods';
 import {
   addMonths, dayLabel, groupByDay, groupSlices, inMonth, monthKeyOf, monthLabel,
@@ -26,7 +26,7 @@ export default function ChartsScreen() {
   const { hydrated, session, onboarding, transactions, customCategories, customPaymentMethods } = usePrototype();
   const { settings } = useHouseholdSettings();
   const { format } = useMoney();
-  const [tab, setTab] = useState<TabKey>('daily');
+  const [selectedTab, setTab] = useState<TabKey>('daily');
   const [kind, setKind] = useState<TransactionKind>('expense');
   const [month, setMonth] = useState(() => new Date());
 
@@ -40,7 +40,9 @@ export default function ChartsScreen() {
     { key: 'trend' as const, label: 'Tendência' },
   ]), [settings.enabled]);
 
-  useEffect(() => { if (!tabs.some((item) => item.key === tab)) setTab('daily'); }, [tab, tabs]);
+  // Turning the partner off removes the people tab; falling back while rendering
+  // avoids a second render pass just to correct the selection.
+  const tab = tabs.some((item) => item.key === selectedTab) ? selectedTab : 'daily';
 
   if (!hydrated || !session || !onboarding.completed) return null;
 

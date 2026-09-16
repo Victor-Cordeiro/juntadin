@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { CategoryIcon } from '@/components/category-icon';
@@ -17,7 +16,6 @@ const options: Option[] = [
 ];
 
 export default function NotificationsScreen() {
-  const router = useRouter();
   const goBack = useGoBack('/settings');
   const { settings, update } = useHouseholdSettings();
 
