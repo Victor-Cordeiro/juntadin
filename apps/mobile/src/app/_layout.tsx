@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { PrototypeProvider } from '@/state/prototype-context';
+import { HouseholdProvider } from '@/state/use-household-settings';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -14,5 +15,5 @@ export default function RootLayout() {
   const [loaded] = useFonts({ Outfit_600SemiBold, IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold });
   useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
   if (!loaded) return null;
-  return <PrototypeProvider><StatusBar style="dark" /><Stack screenOptions={{ headerShown: false, animation: 'fade' }} /></PrototypeProvider>;
+  return <PrototypeProvider><HouseholdProvider><StatusBar style="dark" /><Stack screenOptions={{ headerShown: false, animation: 'fade' }} /></HouseholdProvider></PrototypeProvider>;
 }

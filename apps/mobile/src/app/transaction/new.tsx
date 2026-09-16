@@ -1,6 +1,6 @@
 import type { RecurrenceFrequency, TransactionKind, TransactionParty } from '@juntadin/contracts';
 import { parseBRL } from '@juntadin/domain';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -8,11 +8,15 @@ import { Button, Field, Screen, ScrollGrid, uiStyles } from '@/components/juntad
 import { CalendarField } from '@/components/calendar-field';
 import { CategoryIcon } from '@/components/category-icon';
 import { RecurrenceField } from '@/components/recurrence-field';
+import { AmountKeypad } from '@/components/amount-keypad';
+import { useMoney } from '@/hooks/use-money';
 import { usePrototype } from '@/state/prototype-context';
+import { useHouseholdSettings } from '@/state/use-household-settings';
 import { font, palette } from '@/theme/tokens';
 import { findCategory, presetCategories } from '@/data/categories';
 import { presetPaymentMethods } from '@/data/payment-methods';
-import { todayISODate } from '@/lib/dates';
+import { formatShortDatePT, todayISODate } from '@/lib/dates';
+import { installmentOptions, splitInstallments } from '@/lib/installments';
 
 const partyOptions: { value: TransactionParty; label: string }[] = [{ value: 'me', label: 'Eu' }, { value: 'partner', label: 'Parceiro(a)' }, { value: 'shared', label: 'Compartilhado' }];
 
@@ -33,6 +37,10 @@ function PartyChoice({ value, selected, label, initial, onPress }: { value: Tran
 export default function NewTransactionScreen() {
   const router = useRouter();
   const { session, onboarding, customCategories, customPaymentMethods, setProposal } = usePrototype();
+  const { settings } = useHouseholdSettings();
+  const { currency, format } = useMoney();
+  // The keypad opens with the screen, so the amount is ready to type straight away.
+  const [keypadOpen, setKeypadOpen] = useState(true);
   const [kind, setKind] = useState<TransactionKind>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -41,12 +49,16 @@ export default function NewTransactionScreen() {
   const [date, setDate] = useState(todayISODate());
   const [paymentMethod, setPaymentMethod] = useState(presetPaymentMethods[0].name);
   const [note, setNote] = useState('');
-  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(null);
-  const [details, setDetails] = useState(false);
+  const startsRecurring = useLocalSearchParams<{ recurring?: string }>().recurring === '1';
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(startsRecurring ? 'monthly' : null);
+  const [details, setDetails] = useState(startsRecurring);
+  const [installments, setInstallments] = useState(1);
   const [errors, setErrors] = useState<{ description?: string; amount?: string; date?: string; category?: string }>({});
 
   const categories = [...presetCategories[kind].map((item) => item.name), ...customCategories[kind].map((item) => item.name)];
   const paymentMethods = [...presetPaymentMethods, ...customPaymentMethods];
+  // Only a credit method can be split, and only an expense — income is not installed.
+  const canInstall = kind === 'expense' && (paymentMethods.find((item) => item.name === paymentMethod)?.credit ?? false);
 
   function changeKind(next: TransactionKind) { setKind(next); setCategory(presetCategories[next][0].name); }
 
@@ -55,7 +67,7 @@ export default function NewTransactionScreen() {
     const next = { description: description.trim().length < 2 ? 'Dê um nome para este movimento.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
     setErrors(next);
     if (Object.values(next).some(Boolean) || cents === null) return;
-    setProposal({ id: `draft-${Date.now()}`, kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party, paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, status: 'proposed' });
+    setProposal({ id: `draft-${Date.now()}`, kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party: settings.enabled ? party : 'me', paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, installment: canInstall && installments > 1 ? { purchaseId: '', number: 1, total: installments, purchaseAmountCents: cents } : undefined, status: 'proposed' });
     router.push('/transaction/review');
   }
 
@@ -66,10 +78,17 @@ export default function NewTransactionScreen() {
       <Pressable accessibilityLabel="Fechar e voltar à visão geral" hitSlop={10} onPress={() => router.replace('/dashboard')} style={styles.closeButton}><Text style={styles.closeIcon}>×</Text></Pressable>
     </View>
     <View style={uiStyles.form}>
-      <View style={styles.amountSection}><Text style={styles.amountLabel}>VALOR</Text><View style={styles.amountInput}><Text style={styles.currency}>R$</Text><TextInput accessibilityLabel="Valor" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor={palette.inkMuted} style={styles.amountText} /></View>{errors.amount ? <Text style={styles.error}>{errors.amount}</Text> : null}</View>
+      <View style={styles.amountSection}>
+        <Text style={styles.amountLabel}>VALOR</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Valor, ${amount || 'zero'}. Toque para digitar`} onPress={() => setKeypadOpen(true)} style={styles.amountInput}>
+          <Text style={styles.currency}>{currency.symbol}</Text>
+          <Text style={[styles.amountText, !amount && styles.amountPlaceholder]}>{amount || '0,00'}</Text>
+        </Pressable>
+        {errors.amount ? <Text style={styles.error}>{errors.amount}</Text> : null}
+      </View>
       <Field label={kind === 'expense' ? 'O que você pagou?' : 'De onde veio?'} value={description} onChangeText={setDescription} error={errors.description} placeholder={kind === 'expense' ? 'Ex.: Compras do mercado' : 'Ex.: Salário'} />
 
-      <View style={styles.group}><Text style={styles.label}>{kind === 'expense' ? 'Quem pagou?' : 'Quem recebeu?'}</Text><View accessibilityRole="radiogroup" style={styles.partyRow}>{partyOptions.map((item) => { const ownName = session?.name?.trim().split(/\s+/)[0] || 'Eu'; const label = item.value === 'me' ? ownName : item.label; const initial = item.value === 'me' ? ownName.charAt(0).toUpperCase() : item.label.charAt(0).toUpperCase(); return <PartyChoice key={item.value} value={item.value} selected={party} label={label} initial={initial} onPress={setParty} />; })}</View></View>
+      {settings.enabled ? <View style={styles.group}><Text style={styles.label}>{kind === 'expense' ? 'Quem pagou?' : 'Quem recebeu?'}</Text><View accessibilityRole="radiogroup" style={styles.partyRow}>{partyOptions.map((item) => { const ownName = session?.name?.trim().split(/\s+/)[0] || 'Eu'; const label = item.value === 'me' ? ownName : item.label; const initial = item.value === 'me' ? ownName.charAt(0).toUpperCase() : item.label.charAt(0).toUpperCase(); return <PartyChoice key={item.value} value={item.value} selected={party} label={label} initial={initial} onPress={setParty} />; })}</View></View> : null}
 
       <View style={styles.group}>
         <View style={styles.categoryHeader}><Text style={styles.label}>Categoria</Text><Pressable accessibilityLabel="Editar categorias" onPress={() => router.push('/settings/categories')}><Text style={styles.categoryPlus}>＋</Text></Pressable></View>
@@ -89,6 +108,18 @@ export default function NewTransactionScreen() {
         </ScrollGrid>
       </View>
 
+      {canInstall ? <View style={styles.group}>
+        <Text style={styles.label}>Parcelas</Text>
+        <ScrollGrid>
+          <Choice value="1" selected={String(installments)} label="À vista" onPress={(value) => setInstallments(Number(value))} />
+          {installmentOptions.map((count) => <Choice key={count} value={String(count)} selected={String(installments)} label={`${count}x`} onPress={(value) => setInstallments(Number(value))} />)}
+        </ScrollGrid>
+        {installments > 1 ? <Text style={styles.installmentHint}>
+          {installments}x de {format(splitInstallments(parseBRL(amount) ?? 0n, installments)[installments - 1])}
+          {' · '}primeira em {formatShortDatePT(date)}
+        </Text> : null}
+      </View> : null}
+
       <Pressable onPress={() => setDetails((value) => !value)} style={styles.details}><Text style={styles.detailsText}>{details ? '− Ocultar detalhes' : '＋ Nota e recorrência'}</Text></Pressable>
       {details && <View style={styles.detailCard}>
         <Field label="Nota (opcional)" value={note} onChangeText={setNote} multiline placeholder="Adicione um contexto para lembrar depois" />
@@ -97,6 +128,7 @@ export default function NewTransactionScreen() {
 
       <Button label={`Revisar ${kind === 'expense' ? 'despesa' : 'renda'}`} onPress={submit} />
     </View>
+    <AmountKeypad visible={keypadOpen} value={amount} currencySymbol={currency.symbol} onChange={setAmount} onClose={() => setKeypadOpen(false)} />
   </Screen>;
 }
 
@@ -111,7 +143,8 @@ const styles = StyleSheet.create({
   amountLabel: { color: palette.inkMuted, fontFamily: font.medium, fontSize: 12, letterSpacing: 1 },
   amountInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 78 },
   currency: { color: palette.inkMuted, fontFamily: font.display, fontSize: 28, marginRight: 7 },
-  amountText: { minWidth: 150, color: palette.ink, fontFamily: font.display, fontSize: 54, textAlign: 'center', padding: 0 },
+  amountText: { color: palette.ink, fontFamily: font.display, fontSize: 54, textAlign: 'center' },
+  amountPlaceholder: { color: palette.inkMuted },
   error: { color: palette.deficit, fontFamily: font.regular, fontSize: 13 },
   group: { gap: 10 },
   categoryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -137,4 +170,5 @@ const styles = StyleSheet.create({
   details: { minHeight: 48, justifyContent: 'center' },
   detailsText: { color: palette.greenAction, fontFamily: font.semibold, fontSize: 15 },
   detailCard: { gap: 14, borderRadius: 16, padding: 16, backgroundColor: palette.mint },
+  installmentHint: { color: palette.greenVault, fontFamily: font.medium, fontSize: 13 },
 });

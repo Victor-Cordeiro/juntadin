@@ -1,7 +1,9 @@
-export type PaymentMethodOption = Readonly<{ id: string; name: string; icon: string }>;
+/** `credit` marks a method that can be paid in installments. */
+export type PaymentMethodOption = Readonly<{ id: string; name: string; icon: string; credit?: boolean }>;
 
 export const presetPaymentMethods: PaymentMethodOption[] = [
-  { id: 'credit_card', name: 'Cartão', icon: 'credit_card' },
+  { id: 'credit_card', name: 'Cartão de crédito', icon: 'credit_card', credit: true },
+  { id: 'debit_card', name: 'Cartão de débito', icon: 'credit_card' },
   { id: 'cash', name: 'Dinheiro', icon: 'payments' },
   { id: 'bank_account', name: 'Conta bancária', icon: 'account_balance' },
   { id: 'other', name: 'Outro', icon: 'more_horiz' },

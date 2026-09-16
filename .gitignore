@@ -14,3 +14,9 @@ tmp/
 files.zip
 .DS_Store
 Thumbs.db
+
+# Skills de agente instaladas localmente. Guardam symlinks que o Windows nao
+# recria ao copiar o projeto, o que chega a abortar o upload do build do EAS.
+.agents/
+.claude/skills/
+skills-lock.json

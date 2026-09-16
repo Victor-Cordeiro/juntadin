@@ -6,8 +6,9 @@
       "runtimeExecutable": "corepack",
       "runtimeArgs": [
         "pnpm",
-        "run",
-        "dev"
+        "--filter",
+        "@juntadin/mobile",
+        "start"
       ],
       "port": 8081
     }

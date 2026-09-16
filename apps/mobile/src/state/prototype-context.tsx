@@ -5,11 +5,12 @@ import { createContext, type PropsWithChildren, useCallback, useContext, useEffe
 
 import { authService, type AuthUser } from '@/services/auth';
 import type { Category, CategoryKind } from '@/data/categories';
+import { buildInstallmentTransactions } from '@/lib/installments';
 import type { PaymentMethodOption } from '@/data/payment-methods';
 
 export type ConfirmedTransaction = Omit<TransactionProposal, 'status'> & { status: 'confirmed'; confirmedAt: string };
 type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; customCategories: { expense: Category[]; income: Category[] }; customPaymentMethods: PaymentMethodOption[] };
-type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; signIn(input: SignInInput): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; cancelProposal(): void; confirmProposal(): void };
+type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; signIn(input: SignInInput): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; cancelProposal(): void; confirmProposal(): void; addTransaction(transaction: ConfirmedTransaction): void; updateTransaction(id: string, changes: Partial<ConfirmedTransaction>): void; removeTransaction(id: string): void; replaceTransactions(next: ConfirmedTransaction[]): void };
 
 const Context = createContext<Value | null>(null);
 const emptyState: UserState = { onboarding: { completed: false }, transactions: [], customCategories: { expense: [], income: [] }, customPaymentMethods: [] };
@@ -45,7 +46,21 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setProposal, cancelProposal() { setProposal(null); },
     addCustomCategory(kind, category) { setCustomCategories((current) => current[kind].some((item) => item.name.toLocaleLowerCase('pt-BR') === category.name.toLocaleLowerCase('pt-BR')) ? current : { ...current, [kind]: [...current[kind], category] }); },
     addCustomPaymentMethod(method) { setCustomPaymentMethods((current) => current.some((item) => item.name.toLocaleLowerCase('pt-BR') === method.name.toLocaleLowerCase('pt-BR')) ? current : [...current, method]); },
-    confirmProposal() { if (!proposal) return; setTransactions((current) => appendUniqueById(current, { ...proposal, status: 'confirmed', confirmedAt: new Date().toISOString() })); setProposal(null); },
+    confirmProposal() {
+      if (!proposal) return;
+      const confirmedAt = new Date().toISOString();
+      // An installment purchase becomes one transaction per month, so every screen
+      // that already sums a month reports the right figure with no extra logic.
+      const entries = proposal.installment && proposal.installment.total > 1
+        ? buildInstallmentTransactions(proposal, proposal.installment.total)
+        : [proposal];
+      setTransactions((current) => entries.reduce((list, entry) => appendUniqueById(list, { ...entry, status: 'confirmed', confirmedAt }), current));
+      setProposal(null);
+    },
+    addTransaction(transaction) { setTransactions((current) => appendUniqueById(current, transaction)); },
+    updateTransaction(id, changes) { setTransactions((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item)); },
+    removeTransaction(id) { setTransactions((current) => current.filter((item) => item.id !== id)); },
+    replaceTransactions(next) { setTransactions(next); },
   }), [customCategories, customPaymentMethods, hydrated, loadUserState, onboarding, pendingUser, proposal, session, transactions]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

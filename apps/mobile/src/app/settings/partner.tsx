@@ -7,12 +7,14 @@ import { Button, Field, Screen } from '@/components/juntadin-ui';
 import { CategoryIcon } from '@/components/category-icon';
 import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
+import { useGoBack } from '@/hooks/use-back';
 import { font, palette } from '@/theme/tokens';
 
 export default function PartnerSettingsScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/settings');
   const { session } = usePrototype();
-  const { settings, update, generateInvite } = useHouseholdSettings(session?.id);
+  const { settings, update, generateInvite } = useHouseholdSettings();
   const [copied, setCopied] = useState(false);
   const inviteLink = useMemo(() => settings.inviteCode ? `https://app.juntadin.com/convite/${settings.inviteCode}` : '', [settings.inviteCode]);
 
@@ -20,7 +22,7 @@ export default function PartnerSettingsScreen() {
   async function shareLink() { await Share.share({ title: 'Convite para o Juntadin', message: `Vem organizar nossa vida financeira comigo no Juntadin: ${inviteLink}`, url: inviteLink }); }
 
   return <Screen contentStyle={styles.screen}>
-    <View style={styles.top}><Pressable accessibilityLabel="Voltar" onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.title}>Conta e casal</Text><View style={styles.spacer} /></View>
+    <View style={styles.top}><Pressable accessibilityLabel="Voltar" onPress={goBack}><Text style={styles.back}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.title}>Conta e casal</Text><View style={styles.spacer} /></View>
     <View style={styles.hero}><View style={styles.heroIcon}><CategoryIcon name="group_add" color={palette.greenVault} size={30} /></View><Text style={styles.heroTitle}>Use sozinho ou a dois</Text><Text style={styles.heroText}>Ao ativar o espaço de casal, vocês passam a compartilhar a organização financeira deste espaço.</Text></View>
     <View style={styles.card}>
       <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.rowTitle}>Espaço de casal</Text><Text style={styles.rowBody}>{settings.enabled ? 'Ativado' : 'Você está usando o Juntadin individualmente'}</Text></View><Switch value={settings.enabled} onValueChange={(enabled) => update({ enabled })} trackColor={{ false: palette.border, true: palette.greenAction }} thumbColor={settings.enabled ? palette.greenVault : palette.surface} /></View>

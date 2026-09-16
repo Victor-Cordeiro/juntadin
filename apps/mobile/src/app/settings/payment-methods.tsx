@@ -5,14 +5,16 @@ import { Screen } from '@/components/juntadin-ui';
 import { CategoryIcon } from '@/components/category-icon';
 import { presetPaymentMethods } from '@/data/payment-methods';
 import { usePrototype } from '@/state/prototype-context';
+import { useGoBack } from '@/hooks/use-back';
 import { font, palette } from '@/theme/tokens';
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/settings');
   const { customPaymentMethods } = usePrototype();
   const methods = [...presetPaymentMethods, ...customPaymentMethods];
   return <Screen>
-    <View style={styles.top}><Pressable accessibilityLabel="Voltar" onPress={() => router.back()}><Text style={styles.back}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.title}>Editar métodos</Text><Pressable accessibilityLabel="Adicionar método" onPress={() => router.push('/settings/payment-methods/new')}><Text style={styles.plus}>＋</Text></Pressable></View>
+    <View style={styles.top}><Pressable accessibilityLabel="Voltar" onPress={goBack}><Text style={styles.back}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.title}>Editar métodos</Text><Pressable accessibilityLabel="Adicionar método" onPress={() => router.push('/settings/payment-methods/new')}><Text style={styles.plus}>＋</Text></Pressable></View>
     <View style={styles.list}>{methods.map((method) => <View key={method.id} style={styles.item}><View style={styles.iconBox}><CategoryIcon name={method.icon} color={palette.greenVault} size={26} /></View><Text style={styles.itemName}>{method.name}</Text></View>)}</View>
   </Screen>;
 }
