@@ -27,6 +27,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Juntadin precisa acessar suas fotos para você escolher uma foto de perfil. Ela fica salva apenas neste aparelho."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#06372C",
@@ -38,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3568f110-74db-440b-94b9-00b14fef8179"
+      }
+    },
+    "owner": "appcordeiro"
   }
 }

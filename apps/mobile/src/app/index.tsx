@@ -1,11 +1,18 @@
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BrandMark, Button, Screen } from '@/components/juntadin-ui';
+import { usePrototype } from '@/state/prototype-context';
 import { font, palette } from '@/theme/tokens';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { hydrated, session } = usePrototype();
+  // Someone already signed in should land back where they left off, not on the pitch.
+  useEffect(() => { if (hydrated && session) router.replace('/dashboard'); }, [hydrated, router, session]);
+  if (hydrated && session) return null;
+
   return <Screen contentStyle={styles.content}>
     <View style={styles.top}><BrandMark withName /></View>
     <View style={styles.hero}>

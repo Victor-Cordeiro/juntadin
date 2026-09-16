@@ -6,8 +6,11 @@ export type FinancialCycle = Readonly<{ startDay: number; timezone: 'America/Sao
 export type AccountDraft = Readonly<{ name: string; type: 'checking' | 'cash' | 'credit'; includesPix: boolean; initialBalanceCents: bigint }>;
 export type TransactionKind = 'expense' | 'income';
 export type TransactionParty = 'me' | 'partner' | 'shared';
-export type PaymentMethod = 'bank_account' | 'credit_card' | 'cash' | 'pix';
-export type Recurrence = Readonly<{ frequency: 'monthly'; endDate?: string }>;
+export type PaymentMethod = string;
+export type RecurrenceFrequency = 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'yearly';
+export type Recurrence = Readonly<{ frequency: RecurrenceFrequency }>;
+/** One slice of a purchase split over several months. `purchaseId` ties the slices together. */
+export type Installment = Readonly<{ purchaseId: string; number: number; total: number; purchaseAmountCents: bigint }>;
 export type TransactionProposal = Readonly<{
   id: string;
   kind: TransactionKind;
@@ -20,6 +23,7 @@ export type TransactionProposal = Readonly<{
   paymentMethod: PaymentMethod;
   note?: string;
   recurrence?: Recurrence;
+  installment?: Installment;
   status: 'proposed';
 }>;
 export type OnboardingState = Readonly<{ cycle?: FinancialCycle; account?: AccountDraft; completed: boolean; trialEndsAt?: string }>;

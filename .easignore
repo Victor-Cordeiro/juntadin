@@ -1,0 +1,49 @@
+# EAS uses this file INSTEAD of .gitignore when deciding what to upload, so it has
+# to repeat everything .gitignore covers — otherwise node_modules and .env files
+# would be shipped to the build servers.
+
+# --- mirrors .gitignore ---
+node_modules/
+.pnpm-store/
+.expo/
+dist/
+web-build/
+coverage/
+.env
+.env.*
+!.env.example
+supabase/.branches/
+supabase/.temp/
+tmp/
+*.log
+files.zip
+.DS_Store
+Thumbs.db
+
+# --- mirrors apps/mobile/.gitignore ---
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.pem
+*.tsbuildinfo
+/ios
+/android
+
+# --- build-only exclusions ---
+# Agent skill folders hold symlinks that Windows cannot recreate while EAS copies
+# the project, which aborts the upload with EPERM. They are not part of the app.
+.agents/
+.claude/skills/
+
+# Nothing below is needed to build the mobile app.
+supabase/
+docs/
+brand/
