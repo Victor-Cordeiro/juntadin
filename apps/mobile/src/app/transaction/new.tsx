@@ -17,6 +17,7 @@ import { findCategory, presetCategories } from '@/data/categories';
 import { presetPaymentMethods } from '@/data/payment-methods';
 import { formatShortDatePT, todayISODate } from '@/lib/dates';
 import { installmentOptions, splitInstallments } from '@/lib/installments';
+import { uuid } from '@/lib/uuid';
 
 const partyOptions: { value: TransactionParty; label: string }[] = [{ value: 'me', label: 'Eu' }, { value: 'partner', label: 'Parceiro(a)' }, { value: 'shared', label: 'Compartilhado' }];
 
@@ -36,23 +37,24 @@ function PartyChoice({ value, selected, label, initial, onPress }: { value: Tran
 
 export default function NewTransactionScreen() {
   const router = useRouter();
-  const { session, onboarding, customCategories, customPaymentMethods, setProposal } = usePrototype();
+  const { session, onboarding, customCategories, customPaymentMethods, proposal, setProposal } = usePrototype();
   const { settings } = useHouseholdSettings();
   const { currency, format } = useMoney();
-  // The keypad opens with the screen, so the amount is ready to type straight away.
-  const [keypadOpen, setKeypadOpen] = useState(true);
-  const [kind, setKind] = useState<TransactionKind>('expense');
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [party, setParty] = useState<TransactionParty>('me');
-  const [category, setCategory] = useState('Mercado');
-  const [date, setDate] = useState(todayISODate());
-  const [paymentMethod, setPaymentMethod] = useState(presetPaymentMethods[0].name);
-  const [note, setNote] = useState('');
+  // The keypad opens with the screen when starting from scratch, so the amount is ready
+  // to type straight away — but not when editing a proposal that already has a value.
+  const [keypadOpen, setKeypadOpen] = useState(!proposal);
+  const [kind, setKind] = useState<TransactionKind>(proposal?.kind ?? 'expense');
+  const [description, setDescription] = useState(proposal?.description ?? '');
+  const [amount, setAmount] = useState(proposal ? String(Number(proposal.amountCents) / 100).replace('.', ',') : '');
+  const [party, setParty] = useState<TransactionParty>(proposal?.party ?? 'me');
+  const [category, setCategory] = useState(proposal?.category ?? 'Mercado');
+  const [date, setDate] = useState(proposal?.localDate ?? todayISODate());
+  const [paymentMethod, setPaymentMethod] = useState(proposal?.paymentMethod ?? presetPaymentMethods[0].name);
+  const [note, setNote] = useState(proposal?.note ?? '');
   const startsRecurring = useLocalSearchParams<{ recurring?: string }>().recurring === '1';
-  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(startsRecurring ? 'monthly' : null);
-  const [details, setDetails] = useState(startsRecurring);
-  const [installments, setInstallments] = useState(1);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(proposal?.recurrence?.frequency ?? (startsRecurring ? 'monthly' : null));
+  const [details, setDetails] = useState(startsRecurring || Boolean(proposal?.note || proposal?.recurrence));
+  const [installments, setInstallments] = useState(proposal?.installment?.total ?? 1);
   const [errors, setErrors] = useState<{ description?: string; amount?: string; date?: string; category?: string }>({});
 
   const categories = [...presetCategories[kind].map((item) => item.name), ...customCategories[kind].map((item) => item.name)];
@@ -67,7 +69,7 @@ export default function NewTransactionScreen() {
     const next = { description: description.trim().length < 2 ? 'Dê um nome para este movimento.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
     setErrors(next);
     if (Object.values(next).some(Boolean) || cents === null) return;
-    setProposal({ id: `draft-${Date.now()}`, kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party: settings.enabled ? party : 'me', paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, installment: canInstall && installments > 1 ? { purchaseId: '', number: 1, total: installments, purchaseAmountCents: cents } : undefined, status: 'proposed' });
+    setProposal({ id: uuid(), kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party: settings.enabled ? party : 'me', paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, installment: canInstall && installments > 1 ? { purchaseId: '', number: 1, total: installments, purchaseAmountCents: cents } : undefined, status: 'proposed' });
     router.push('/transaction/review');
   }
 

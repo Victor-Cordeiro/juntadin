@@ -22,7 +22,7 @@ function SettingsRow({ icon, title, body, value, onPress }: RowProps) {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { hydrated, session, onboarding, transactions, replaceTransactions, signOut } = usePrototype();
+  const { hydrated, session, onboarding, transactions, pendingItems, replaceTransactions, signOut } = usePrototype();
   const { settings, update } = useHouseholdSettings();
   const { format, currency } = useMoney();
   const [editingLimit, setEditingLimit] = useState(false);
@@ -30,6 +30,7 @@ export default function SettingsScreen() {
   const [photoError, setPhotoError] = useState('');
   const limitCount = Object.keys(settings.categoryLimits).length;
   const recurringCount = transactions.filter((item) => item.recurrence).length;
+  const pendingBillsCount = pendingItems.filter((item) => item.status === 'pending').length;
   useEffect(() => { if (hydrated && !session) router.replace('/auth/login'); }, [hydrated, router, session]);
   if (!hydrated || !session || !onboarding.completed) return null;
   function saveLimit() { const cents = parseBRL(limit); update({ monthlyLimitCents: cents === null ? null : cents.toString() }); setEditingLimit(false); }
@@ -71,6 +72,7 @@ export default function SettingsScreen() {
       <SettingsRow icon="category" title="Editar categorias" onPress={() => router.push('/settings/categories')} />
       <SettingsRow icon="credit_card" title="Métodos de pagamento" onPress={() => router.push('/settings/payment-methods')} />
       <SettingsRow icon="repeat" title="Transações recorrentes" value={recurringCount ? `${recurringCount}` : undefined} onPress={() => router.push('/settings/recurring')} />
+      <SettingsRow icon="receipt_long" title="Contas a pagar e a receber" value={pendingBillsCount ? `${pendingBillsCount}` : undefined} onPress={() => router.push('/bills')} />
       <SettingsRow icon="schedule" title="Ciclo financeiro" value={`Dia ${onboarding.cycle?.startDay ?? 1}`} />
     </View>
     <Text style={styles.sectionLabel}>PREFERÊNCIAS</Text>

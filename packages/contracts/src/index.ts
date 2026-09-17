@@ -27,6 +27,24 @@ export type TransactionProposal = Readonly<{
   status: 'proposed';
 }>;
 export type OnboardingState = Readonly<{ cycle?: FinancialCycle; account?: AccountDraft; completed: boolean; trialEndsAt?: string }>;
+/** A future obligation the user tracked ahead of time — "devo pro Felipe", "conta de luz" — not yet reflected in the balance. */
+export type PendingItemKind = 'payable' | 'receivable';
+export type PendingItemStatus = 'pending' | 'settled';
+export type PendingItem = Readonly<{
+  id: string;
+  kind: PendingItemKind;
+  description: string;
+  amountCents: bigint;
+  dueDate: string;
+  category: string;
+  paymentMethod?: PaymentMethod;
+  party: TransactionParty;
+  note?: string;
+  recurrence?: Recurrence;
+  status: PendingItemStatus;
+  settledAt?: string;
+  settledTransactionId?: string;
+}>;
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
