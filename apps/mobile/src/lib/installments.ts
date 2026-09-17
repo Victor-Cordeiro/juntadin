@@ -1,6 +1,7 @@
 import type { TransactionProposal } from '@juntadin/contracts';
 
 import { addRecurrence, parseISODate, toISODate } from '@/lib/dates';
+import { uuid } from '@/lib/uuid';
 
 export const installmentOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 24];
 
@@ -36,11 +37,11 @@ export function installmentDates(startDate: string, count: number): string[] {
 export function buildInstallmentTransactions(proposal: TransactionProposal, count: number) {
   const amounts = splitInstallments(proposal.amountCents, count);
   const dates = installmentDates(proposal.localDate, count);
-  const purchaseId = `purchase-${Date.now()}`;
+  const purchaseId = uuid();
 
   return amounts.map((amountCents, index) => ({
     ...proposal,
-    id: `${purchaseId}-${index + 1}`,
+    id: uuid(),
     amountCents,
     localDate: dates[index],
     installment: { purchaseId, number: index + 1, total: count, purchaseAmountCents: proposal.amountCents },

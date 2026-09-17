@@ -54,22 +54,44 @@ function vary(cents: number, monthOffset: number, index: number): number {
  * Six months of movements ending in the current month, so every chart — daily,
  * categories, methods, people and the six-month trend — has something to show.
  */
+function isSkipped(monthOffset: number, index: number, day: number, isCurrentMonth: boolean, today: number): boolean {
+  // Only the current month is partially filled — the day must not run past today.
+  if (isCurrentMonth && day > today) return true;
+  // Older months skip a few entries so the trend line is not perfectly flat.
+  if (!isCurrentMonth && (monthOffset * 3 + index) % 7 === 0) return true;
+  return false;
+}
+
 export function buildDemoTransactions(now = new Date()): ConfirmedTransaction[] {
   const transactions: ConfirmedTransaction[] = [];
   const confirmedAt = now.toISOString();
+  const specs = [...expenseSpecs, ...incomeSpecs];
+
+  // Only the newest generated copy of each recurring spec carries the rule, so the
+  // recurring list shows one row each. The current month's copy may itself be skipped
+  // (see isSkipped), so find whichever month is actually closest to now for each spec.
+  const recurringMonthOffset = new Map<number, number>();
+  specs.forEach((spec, index) => {
+    if (!spec.recurrence) return;
+    for (let monthOffset = 0; monthOffset <= 5; monthOffset += 1) {
+      const month = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
+      const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      const day = Math.min(spec.day, lastDay);
+      if (!isSkipped(monthOffset, index, day, monthOffset === 0, now.getDate())) {
+        recurringMonthOffset.set(index, monthOffset);
+        break;
+      }
+    }
+  });
 
   for (let monthOffset = 5; monthOffset >= 0; monthOffset -= 1) {
     const month = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
     const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     const isCurrentMonth = monthOffset === 0;
-    const specs = [...expenseSpecs, ...incomeSpecs];
 
     specs.forEach((spec, index) => {
-      // Only the current month is partially filled — the day must not run past today.
       const day = Math.min(spec.day, lastDay);
-      if (isCurrentMonth && day > now.getDate()) return;
-      // Older months skip a few entries so the trend line is not perfectly flat.
-      if (!isCurrentMonth && (monthOffset * 3 + index) % 7 === 0) return;
+      if (isSkipped(monthOffset, index, day, isCurrentMonth, now.getDate())) return;
 
       const kind = incomeSpecs.includes(spec) ? 'income' : 'expense';
       transactions.push({
@@ -82,8 +104,7 @@ export function buildDemoTransactions(now = new Date()): ConfirmedTransaction[] 
         localDate: toISODate(new Date(month.getFullYear(), month.getMonth(), day)),
         party: spec.party ?? 'me',
         paymentMethod: spec.method,
-        // Only the newest copy carries the rule, so the recurring list shows one row each.
-        ...(spec.recurrence && isCurrentMonth ? { recurrence: { frequency: spec.recurrence } } : {}),
+        ...(spec.recurrence && recurringMonthOffset.get(index) === monthOffset ? { recurrence: { frequency: spec.recurrence } } : {}),
         status: 'confirmed',
         confirmedAt,
       });

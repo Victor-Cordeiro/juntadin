@@ -12,7 +12,7 @@ import { chartPalette, findCategory } from '@/data/categories';
 import { findPaymentMethod, presetPaymentMethods } from '@/data/payment-methods';
 import {
   addMonths, dayLabel, groupByDay, groupSlices, inMonth, monthKeyOf, monthLabel,
-  monthSeries, partyLabels, projectMonths, shortMonthLabel, sumOf, type Slice,
+  monthSeries, partyLabels, projectMonths, shortMonthLabel, sumOf, type MonthPoint, type Slice,
 } from '@/lib/analytics';
 import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
@@ -197,20 +197,23 @@ function TrendTab({ transactions, limitCents }: { transactions: ReturnType<typeo
       <TrendChart points={points} limitCents={limitCents} />
       <Text style={styles.trendHint}>{hasProjection ? 'O traço pontilhado projeta os próximos meses a partir dos movimentos recorrentes.' : 'Marque um movimento como recorrente para ver a projeção dos próximos meses.'}</Text>
     </View>
-    {[...history].reverse().map((point) => {
-      const balance = point.income - point.expense;
-      return <View key={point.key} style={styles.monthBlock}>
-        <Text style={styles.monthName}>{monthLabel(point.date).split(' de ')[0]}</Text>
-        <View style={[styles.card, styles.monthCard]}>
-          <View style={styles.totalBlock}><Text style={styles.totalLabel}>DESPESAS</Text><Text style={styles.monthValue}>{format(point.expense)}</Text></View>
-          <View style={styles.totalDivider} />
-          <View style={styles.totalBlock}><Text style={styles.totalLabel}>RENDAS</Text><Text style={[styles.monthValue, { color: palette.greenAction }]}>+{format(point.income)}</Text></View>
-          <View style={styles.totalDivider} />
-          <View style={styles.totalBlock}><Text style={styles.totalLabel}>SALDO</Text><Text style={[styles.monthValue, balance < 0n && { color: palette.deficit }]}>{balance >= 0n ? '+' : '−'}{format(balance < 0n ? -balance : balance)}</Text></View>
-        </View>
-      </View>;
-    })}
+    {[...history].reverse().map((point) => <MonthCard key={point.key} point={point} format={format} />)}
+    {hasProjection ? projection.map((point) => <MonthCard key={point.key} point={point} format={format} projected />) : null}
   </>;
+}
+
+function MonthCard({ point, format, projected = false }: { point: MonthPoint; format(cents: bigint): string; projected?: boolean }) {
+  const balance = point.income - point.expense;
+  return <View style={styles.monthBlock}>
+    <Text style={styles.monthName}>{monthLabel(point.date).split(' de ')[0]}{projected ? ' (projetado)' : ''}</Text>
+    <View style={[styles.card, styles.monthCard, projected && styles.monthCardProjected]}>
+      <View style={styles.totalBlock}><Text style={styles.totalLabel}>DESPESAS</Text><Text style={styles.monthValue}>{format(point.expense)}</Text></View>
+      <View style={styles.totalDivider} />
+      <View style={styles.totalBlock}><Text style={styles.totalLabel}>RENDAS</Text><Text style={[styles.monthValue, { color: palette.greenAction }]}>+{format(point.income)}</Text></View>
+      <View style={styles.totalDivider} />
+      <View style={styles.totalBlock}><Text style={styles.totalLabel}>SALDO</Text><Text style={[styles.monthValue, balance < 0n && { color: palette.deficit }]}>{balance >= 0n ? '+' : '−'}{format(balance < 0n ? -balance : balance)}</Text></View>
+    </View>
+  </View>;
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -264,6 +267,7 @@ const styles = StyleSheet.create({
   monthBlock: { gap: 8 },
   monthName: { color: palette.ink, fontFamily: font.display, fontSize: 19 },
   monthCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 10 },
+  monthCardProjected: { borderStyle: 'dashed', opacity: 0.75 },
   monthValue: { color: palette.ink, fontFamily: font.display, fontSize: 14, textAlign: 'center' },
   trendHint: { color: palette.inkMuted, fontFamily: font.regular, fontSize: 12, lineHeight: 18 },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 28 },
