@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { BrandMark, Screen } from '@/components/juntadin-ui';
+import { Screen } from '@/components/juntadin-ui';
 import { CategoryIcon } from '@/components/category-icon';
 import { useGoBack } from '@/hooks/use-back';
 import { captureReceiptImage, useAudioCapture } from '@/lib/ai-capture';
@@ -86,10 +86,9 @@ export default function AiChatScreen() {
   return <Screen contentStyle={styles.screen} footer={<InputBar text={text} setText={setText} busy={busy} onSend={sendText} onCamera={() => sendImage('camera')} onGallery={() => sendImage('library')} onMic={toggleRecording} recording={audio.isRecording} />}>
     <View style={styles.top}>
       <Pressable accessibilityLabel="Voltar" hitSlop={10} onPress={goBack} style={styles.back}><Text style={styles.backIcon}>‹</Text></Pressable>
-      <BrandMark withName />
       <View style={styles.top} />
     </View>
-    <Text style={styles.title}>JuntaAI</Text>
+    <Text style={styles.title}>JuntaAi</Text>
     <View style={styles.thread}>
       {messages.map((message) => <View key={message.id} style={[styles.bubbleWrap, message.from === 'me' && styles.bubbleWrapMe]}>
         <View style={[styles.bubble, message.from === 'me' ? styles.bubbleMe : styles.bubbleIa, message.error && styles.bubbleError]}>

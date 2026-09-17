@@ -1,6 +1,6 @@
 import type { PendingItem, PendingItemKind } from '@juntadin/contracts';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CalendarField } from '@/components/calendar-field';
@@ -48,7 +48,7 @@ export default function BillsScreen() {
     </View>
 
     {items.length === 0 ? <EmptyState kind={kind} /> : <View style={styles.list}>
-      {items.map((item) => <BillRow key={item.id} item={item} overdue={item.dueDate < today} onSettle={() => setSettling(item)} />)}
+      {items.map((item) => <BillRow key={item.id} item={item} overdue={item.dueDate < today} onSettle={() => setSettling(item)} onEdit={() => router.push({ pathname: '/bills/new', params: { id: item.id } })} />)}
     </View>}
 
     <Button label={kind === 'payable' ? '+ Nova conta a pagar' : '+ Nova conta a receber'} onPress={() => router.push('/bills/new')} />
@@ -70,12 +70,12 @@ function EmptyState({ kind }: { kind: PendingItemKind }) {
   </View>;
 }
 
-function BillRow({ item, overdue, onSettle }: { item: PendingItem; overdue: boolean; onSettle(): void }) {
+function BillRow({ item, overdue, onSettle, onEdit }: { item: PendingItem; overdue: boolean; onSettle(): void; onEdit(): void }) {
   const { format } = useMoney();
   const { customCategories } = usePrototype();
   const categoryKind = item.kind === 'payable' ? 'expense' : 'income';
   const metadata = findCategory(categoryKind, item.category, customCategories[categoryKind]);
-  return <View style={styles.row}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.description}`} onPress={onEdit} style={styles.row}>
     <View style={[styles.rowIcon, { backgroundColor: `${metadata?.color ?? palette.greenVault}22` }]}><CategoryIcon name={metadata?.icon ?? 'receipt_long'} color={metadata?.color ?? palette.greenVault} size={22} /></View>
     <View style={styles.rowText}>
       <Text style={styles.rowName}>{item.description}</Text>
@@ -83,9 +83,9 @@ function BillRow({ item, overdue, onSettle }: { item: PendingItem; overdue: bool
     </View>
     <View style={styles.rowRight}>
       <Text style={[styles.rowAmount, item.kind === 'receivable' && { color: palette.greenAction }]}>{item.kind === 'receivable' ? '+' : ''}{format(item.amountCents)}</Text>
-      <Pressable accessibilityRole="button" onPress={onSettle} style={styles.settleButton}><Text style={styles.settleText}>{item.kind === 'payable' ? 'Marcar pago' : 'Marcar recebido'}</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); onSettle(); }} style={styles.settleButton}><Text style={styles.settleText}>{item.kind === 'payable' ? 'Marcar pago' : 'Marcar recebido'}</Text></Pressable>
     </View>
-  </View>;
+  </Pressable>;
 }
 
 function SettleModal({ item, onClose, onSettled }: { item: PendingItem; onClose(): void; onSettled(nextDueDate?: string): void }) {

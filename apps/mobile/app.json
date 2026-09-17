@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Juntadin",
+    "name": "JuntaDin",
     "slug": "juntadin",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -29,14 +29,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O Juntadin precisa acessar suas fotos para você escolher uma foto de perfil. Ela fica salva apenas neste aparelho.",
-          "cameraPermission": "O Juntadin precisa da câmera para fotografar um recibo ou boleto. A foto é usada só na hora e nunca é salva."
+          "photosPermission": "O JuntaDin precisa acessar suas fotos para você escolher uma foto de perfil. Ela fica salva apenas neste aparelho.",
+          "cameraPermission": "O JuntaDin precisa da câmera para fotografar um recibo ou boleto. A foto é usada só na hora e nunca é salva."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "O Juntadin precisa do microfone para você contar um lançamento por voz. O áudio é usado só na hora e nunca é salvo."
+          "microphonePermission": "O JuntaDin precisa do microfone para você contar um lançamento por voz. O áudio é usado só na hora e nunca é salvo."
         }
       ],
       [

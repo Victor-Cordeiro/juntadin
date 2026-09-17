@@ -18,3 +18,7 @@ export const paymentMethodIcons = [
 export function findPaymentMethod(name: string, custom: PaymentMethodOption[]): PaymentMethodOption | undefined {
   return [...presetPaymentMethods, ...custom].find((method) => method.name === name);
 }
+
+export function orderPaymentMethods(items: PaymentMethodOption[], order: string[]): PaymentMethodOption[] {
+  return [...items].sort((a, b) => { const ai = order.indexOf(a.id); const bi = order.indexOf(b.id); return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi); });
+}

@@ -13,8 +13,8 @@ import { useMoney } from '@/hooks/use-money';
 import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
 import { font, palette } from '@/theme/tokens';
-import { findCategory, presetCategories } from '@/data/categories';
-import { presetPaymentMethods } from '@/data/payment-methods';
+import { findCategory, orderCategories, presetCategories } from '@/data/categories';
+import { orderPaymentMethods, presetPaymentMethods } from '@/data/payment-methods';
 import { formatShortDatePT, todayISODate } from '@/lib/dates';
 import { installmentOptions, splitInstallments } from '@/lib/installments';
 import { uuid } from '@/lib/uuid';
@@ -24,6 +24,8 @@ const partyOptions: { value: TransactionParty; label: string }[] = [{ value: 'me
 function Choice<T extends string>({ value, selected, label, icon, iconColor, fill = false, onPress }: { value: T; selected: T; label: string; icon?: string; iconColor?: string; fill?: boolean; onPress(value: T): void }) { const active = value === selected; return <Pressable accessibilityRole="radio" accessibilityState={{ checked: active }} onPress={() => onPress(value)} style={[styles.choice, fill && styles.choiceFill, active && styles.choiceActive]}><View style={styles.choiceContent}>{icon ? <CategoryIcon name={icon} color={active ? '#FFFFFF' : (iconColor ?? palette.greenVault)} size={18} /> : null}<Text style={[styles.choiceText, active && styles.choiceTextActive]}>{label}</Text></View></Pressable>; }
 
 function AddChip({ label, onPress }: { label: string; onPress(): void }) { return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.addChip}><Text style={styles.addChipText}>＋ {label}</Text></Pressable>; }
+
+function InstallmentPicker({ installments, setInstallments, amount, date, format }: { installments: number; setInstallments(value: number): void; amount: string; date: string; format(cents: bigint): string }) { const [open, setOpen] = useState(false); return <View style={styles.group}><Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((value) => !value)} style={styles.installmentHeader}><Text style={styles.label}>Parcelas</Text><Text style={styles.installmentToggle}>{installments > 1 ? `${installments}x` : 'À vista'} {open ? '⌃' : '⌄'}</Text></Pressable>{open ? <ScrollGrid><Choice value="1" selected={String(installments)} label="À vista" onPress={(value) => setInstallments(Number(value))} />{installmentOptions.map((count) => <Choice key={count} value={String(count)} selected={String(installments)} label={`${count}x`} onPress={(value) => setInstallments(Number(value))} />)}</ScrollGrid> : null}{installments > 1 ? <Text style={styles.installmentHint}>{installments}x de {format(splitInstallments(parseBRL(amount) ?? 0n, installments)[installments - 1])}{' · '}primeira em {formatShortDatePT(date)}</Text> : null}</View>; }
 
 function PartyChoice({ value, selected, label, initial, onPress }: { value: TransactionParty; selected: TransactionParty; label: string; initial: string; onPress(value: TransactionParty): void }) {
   const active = value === selected;
@@ -37,7 +39,7 @@ function PartyChoice({ value, selected, label, initial, onPress }: { value: Tran
 
 export default function NewTransactionScreen() {
   const router = useRouter();
-  const { session, onboarding, customCategories, customPaymentMethods, proposal, setProposal } = usePrototype();
+  const { session, onboarding, customCategories, customPaymentMethods, categoryOrder, paymentMethodOrder, proposal, setProposal } = usePrototype();
   const { settings } = useHouseholdSettings();
   const { currency, format } = useMoney();
   // The keypad opens with the screen when starting from scratch, so the amount is ready
@@ -47,9 +49,9 @@ export default function NewTransactionScreen() {
   const [description, setDescription] = useState(proposal?.description ?? '');
   const [amount, setAmount] = useState(proposal ? String(Number(proposal.amountCents) / 100).replace('.', ',') : '');
   const [party, setParty] = useState<TransactionParty>(proposal?.party ?? 'me');
-  const [category, setCategory] = useState(proposal?.category ?? 'Mercado');
+  const [category, setCategory] = useState(proposal?.category ?? orderCategories([...presetCategories.expense, ...customCategories.expense], categoryOrder.expense)[0].name);
   const [date, setDate] = useState(proposal?.localDate ?? todayISODate());
-  const [paymentMethod, setPaymentMethod] = useState(proposal?.paymentMethod ?? presetPaymentMethods[0].name);
+  const [paymentMethod, setPaymentMethod] = useState(proposal?.paymentMethod ?? orderPaymentMethods([...presetPaymentMethods, ...customPaymentMethods], paymentMethodOrder)[0].name);
   const [note, setNote] = useState(proposal?.note ?? '');
   const startsRecurring = useLocalSearchParams<{ recurring?: string }>().recurring === '1';
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(proposal?.recurrence?.frequency ?? (startsRecurring ? 'monthly' : null));
@@ -57,8 +59,8 @@ export default function NewTransactionScreen() {
   const [installments, setInstallments] = useState(proposal?.installment?.total ?? 1);
   const [errors, setErrors] = useState<{ description?: string; amount?: string; date?: string; category?: string }>({});
 
-  const categories = [...presetCategories[kind].map((item) => item.name), ...customCategories[kind].map((item) => item.name)];
-  const paymentMethods = [...presetPaymentMethods, ...customPaymentMethods];
+  const categories = orderCategories([...presetCategories[kind], ...customCategories[kind]], categoryOrder[kind]).map((item) => item.name);
+  const paymentMethods = orderPaymentMethods([...presetPaymentMethods, ...customPaymentMethods], paymentMethodOrder);
   // Only a credit method can be split, and only an expense — income is not installed.
   const canInstall = kind === 'expense' && (paymentMethods.find((item) => item.name === paymentMethod)?.credit ?? false);
 
@@ -110,17 +112,7 @@ export default function NewTransactionScreen() {
         </ScrollGrid>
       </View>
 
-      {canInstall ? <View style={styles.group}>
-        <Text style={styles.label}>Parcelas</Text>
-        <ScrollGrid>
-          <Choice value="1" selected={String(installments)} label="À vista" onPress={(value) => setInstallments(Number(value))} />
-          {installmentOptions.map((count) => <Choice key={count} value={String(count)} selected={String(installments)} label={`${count}x`} onPress={(value) => setInstallments(Number(value))} />)}
-        </ScrollGrid>
-        {installments > 1 ? <Text style={styles.installmentHint}>
-          {installments}x de {format(splitInstallments(parseBRL(amount) ?? 0n, installments)[installments - 1])}
-          {' · '}primeira em {formatShortDatePT(date)}
-        </Text> : null}
-      </View> : null}
+      {canInstall ? <InstallmentPicker installments={installments} setInstallments={setInstallments} amount={amount} date={date} format={format} /> : null}
 
       <Pressable onPress={() => setDetails((value) => !value)} style={styles.details}><Text style={styles.detailsText}>{details ? '− Ocultar detalhes' : '＋ Nota e recorrência'}</Text></Pressable>
       {details && <View style={styles.detailCard}>
@@ -172,5 +164,7 @@ const styles = StyleSheet.create({
   details: { minHeight: 48, justifyContent: 'center' },
   detailsText: { color: palette.greenAction, fontFamily: font.semibold, fontSize: 15 },
   detailCard: { gap: 14, borderRadius: 16, padding: 16, backgroundColor: palette.mint },
+  installmentHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  installmentToggle: { color: palette.greenVault, fontFamily: font.semibold, fontSize: 15 },
   installmentHint: { color: palette.greenVault, fontFamily: font.medium, fontSize: 13 },
 });

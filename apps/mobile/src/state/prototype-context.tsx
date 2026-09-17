@@ -16,17 +16,17 @@ import { enqueue, flushQueue, readQueue, type SyncState } from '@/services/sync-
 import { enqueueBillsOperation, flushBillsQueue, readBillsQueue } from '@/services/bills-sync-queue';
 
 export type ConfirmedTransaction = Omit<TransactionProposal, 'status'> & { status: 'confirmed'; confirmedAt: string };
-type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; pendingItems: PendingItem[]; customCategories: { expense: Category[]; income: Category[] }; customPaymentMethods: PaymentMethodOption[] };
+type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; pendingItems: PendingItem[]; customCategories: { expense: Category[]; income: Category[] }; customPaymentMethods: PaymentMethodOption[]; categoryOrder: { expense: string[]; income: string[] }; paymentMethodOrder: string[] };
 type SettleInput = { settledDate: string; paymentMethod?: string };
 type SettleResult = { transactionId: string; nextDueDate?: string };
-type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; syncState: SyncState; pendingSyncCount: number; signIn(input: SignInInput): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; cancelProposal(): void; confirmProposal(): void; addTransaction(transaction: ConfirmedTransaction): void; updateTransaction(id: string, changes: Partial<ConfirmedTransaction>): void; removeTransaction(id: string): void; replaceTransactions(next: ConfirmedTransaction[]): void; addPendingItem(item: PendingItem): void; updatePendingItem(id: string, changes: Partial<PendingItem>): void; removePendingItem(id: string): void; settlePendingItem(id: string, input: SettleInput): SettleResult | undefined };
+type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; syncState: SyncState; pendingSyncCount: number; signIn(input: SignInInput): Promise<void>; signInWithGoogle(): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; reorderCategories(kind: CategoryKind, ids: string[]): void; reorderPaymentMethods(ids: string[]): void; cancelProposal(): void; confirmProposal(): void; addTransaction(transaction: ConfirmedTransaction): void; updateTransaction(id: string, changes: Partial<ConfirmedTransaction>): void; removeTransaction(id: string): void; replaceTransactions(next: ConfirmedTransaction[]): void; addPendingItem(item: PendingItem): void; updatePendingItem(id: string, changes: Partial<PendingItem>): void; removePendingItem(id: string): void; settlePendingItem(id: string, input: SettleInput): SettleResult | undefined };
 
 const Context = createContext<Value | null>(null);
-const emptyState: UserState = { onboarding: { completed: false }, transactions: [], pendingItems: [], customCategories: { expense: [], income: [] }, customPaymentMethods: [] };
+const emptyState: UserState = { onboarding: { completed: false }, transactions: [], pendingItems: [], customCategories: { expense: [], income: [] }, customPaymentMethods: [], categoryOrder: { expense: [], income: [] }, paymentMethodOrder: [] };
 const storageKey = (userId: string) => `@juntadin/prototype-v2/${userId}`;
 
 function serializeState(value: UserState): string { return JSON.stringify(value, (_key, item: unknown) => typeof item === 'bigint' ? { __juntadinBigInt: item.toString() } : item); }
-function parseState(raw: string): UserState { const parsed = JSON.parse(raw, (_key, item: unknown) => item && typeof item === 'object' && '__juntadinBigInt' in item ? BigInt(String((item as { __juntadinBigInt: unknown }).__juntadinBigInt)) : item) as Partial<UserState>; const customCategories = parsed.customCategories ?? emptyState.customCategories; const normalize = (items: unknown[], kind: CategoryKind): Category[] => items.map((item, index) => { if (typeof item === 'string') return { id: `legacy-${kind}-${index}`, name: item, icon: 'sell', color: '#0E7A63' }; const category = item as Category; return { ...category, icon: /^[a-z0-9_]+$/.test(category.icon) ? category.icon : 'category' }; }); return { onboarding: parsed.onboarding ?? emptyState.onboarding, transactions: parsed.transactions ?? [], pendingItems: parsed.pendingItems ?? [], customCategories: { expense: normalize(customCategories.expense ?? [], 'expense'), income: normalize(customCategories.income ?? [], 'income') }, customPaymentMethods: parsed.customPaymentMethods ?? emptyState.customPaymentMethods }; }
+function parseState(raw: string): UserState { const parsed = JSON.parse(raw, (_key, item: unknown) => item && typeof item === 'object' && '__juntadinBigInt' in item ? BigInt(String((item as { __juntadinBigInt: unknown }).__juntadinBigInt)) : item) as Partial<UserState>; const customCategories = parsed.customCategories ?? emptyState.customCategories; const normalize = (items: unknown[], kind: CategoryKind): Category[] => items.map((item, index) => { if (typeof item === 'string') return { id: `legacy-${kind}-${index}`, name: item, icon: 'sell', color: '#0E7A63' }; const category = item as Category; return { ...category, icon: /^[a-z0-9_]+$/.test(category.icon) ? category.icon : 'category' }; }); return { onboarding: parsed.onboarding ?? emptyState.onboarding, transactions: parsed.transactions ?? [], pendingItems: parsed.pendingItems ?? [], customCategories: { expense: normalize(customCategories.expense ?? [], 'expense'), income: normalize(customCategories.income ?? [], 'income') }, customPaymentMethods: parsed.customPaymentMethods ?? emptyState.customPaymentMethods, categoryOrder: parsed.categoryOrder ?? emptyState.categoryOrder, paymentMethodOrder: parsed.paymentMethodOrder ?? emptyState.paymentMethodOrder }; }
 
 /**
  * The server is the source of truth once reached. Anything still in the outbound queue
@@ -39,7 +39,7 @@ function mergeRemote<T extends { id: string }>(local: T[], remote: T[], pendingI
 }
 
 export function PrototypeProvider({ children }: PropsWithChildren) {
-  const [hydrated, setHydrated] = useState(false); const [session, setSession] = useState<AuthUser | null>(null); const [pendingUser, setPendingUser] = useState<AuthUser | null>(null); const [onboarding, setOnboarding] = useState<OnboardingState>(emptyState.onboarding); const [proposal, setProposal] = useState<TransactionProposal | null>(null); const [transactions, setTransactions] = useState<ConfirmedTransaction[]>([]); const [pendingItems, setPendingItems] = useState<PendingItem[]>([]); const [customCategories, setCustomCategories] = useState(emptyState.customCategories); const [customPaymentMethods, setCustomPaymentMethods] = useState(emptyState.customPaymentMethods);
+  const [hydrated, setHydrated] = useState(false); const [session, setSession] = useState<AuthUser | null>(null); const [pendingUser, setPendingUser] = useState<AuthUser | null>(null); const [onboarding, setOnboarding] = useState<OnboardingState>(emptyState.onboarding); const [proposal, setProposal] = useState<TransactionProposal | null>(null); const [transactions, setTransactions] = useState<ConfirmedTransaction[]>([]); const [pendingItems, setPendingItems] = useState<PendingItem[]>([]); const [customCategories, setCustomCategories] = useState(emptyState.customCategories); const [customPaymentMethods, setCustomPaymentMethods] = useState(emptyState.customPaymentMethods); const [categoryOrder, setCategoryOrder] = useState(emptyState.categoryOrder); const [paymentMethodOrder, setPaymentMethodOrder] = useState(emptyState.paymentMethodOrder);
   const [syncState, setSyncState] = useState<SyncState>('idle'); const [pendingSyncCount, setPendingSyncCount] = useState(0);
   // A ref, not state: every write path reads it synchronously to decide whether to
   // queue at all, and re-render on its own would just be noise.
@@ -47,8 +47,8 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   const loadUserState = useCallback(async (user: AuthUser | null) => {
     spaceIdRef.current = null;
-    if (!user) { setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); return; }
-    const raw = await AsyncStorage.getItem(storageKey(user.id)); const saved = raw ? parseState(raw) : emptyState; setOnboarding(saved.onboarding); setTransactions(saved.transactions); setPendingItems(saved.pendingItems); setCustomCategories(saved.customCategories); setCustomPaymentMethods(saved.customPaymentMethods);
+    if (!user) { setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); setCategoryOrder(emptyState.categoryOrder); setPaymentMethodOrder([]); return; }
+    const raw = await AsyncStorage.getItem(storageKey(user.id)); const saved = raw ? parseState(raw) : emptyState; setOnboarding(saved.onboarding); setTransactions(saved.transactions); setPendingItems(saved.pendingItems); setCustomCategories(saved.customCategories); setCustomPaymentMethods(saved.customPaymentMethods); setCategoryOrder(saved.categoryOrder); setPaymentMethodOrder(saved.paymentMethodOrder);
   }, []);
 
   /**
@@ -122,18 +122,21 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     return () => subscription.remove();
   }, [runSync, session]);
 
-  useEffect(() => { if (hydrated && session) AsyncStorage.setItem(storageKey(session.id), serializeState({ onboarding, transactions, pendingItems, customCategories, customPaymentMethods })).catch(() => undefined); }, [customCategories, customPaymentMethods, hydrated, onboarding, pendingItems, session, transactions]);
+  useEffect(() => { if (hydrated && session) AsyncStorage.setItem(storageKey(session.id), serializeState({ onboarding, transactions, pendingItems, customCategories, customPaymentMethods, categoryOrder, paymentMethodOrder })).catch(() => undefined); }, [categoryOrder, customCategories, customPaymentMethods, hydrated, onboarding, paymentMethodOrder, pendingItems, session, transactions]);
 
-  const value = useMemo<Value>(() => ({ hydrated, session, pendingUser, onboarding, proposal, transactions, pendingItems, customCategories, customPaymentMethods, syncState, pendingSyncCount,
+  const value = useMemo<Value>(() => ({ hydrated, session, pendingUser, onboarding, proposal, transactions, pendingItems, customCategories, customPaymentMethods, categoryOrder, paymentMethodOrder, syncState, pendingSyncCount,
     async signIn(input) { setHydrated(false); try { const user = await authService.signIn(input); setSession(user); await loadUserState(user); } finally { setHydrated(true); } },
+    async signInWithGoogle() { setHydrated(false); try { const user = await authService.signInWithGoogle(); setSession(user); await loadUserState(user); } finally { setHydrated(true); } },
     async signUp(input) { const user = await authService.signUp(input); setPendingUser(null); setSession(user); await loadUserState(user); },
     async verifyEmail() { const user = await authService.confirmEmailSession(); setSession(user); setPendingUser(null); await loadUserState(user); },
-    async signOut() { await authService.signOut(); setSession(null); setPendingUser(null); setProposal(null); setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); },
+    async signOut() { await authService.signOut(); setSession(null); setPendingUser(null); setProposal(null); setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); setCategoryOrder(emptyState.categoryOrder); setPaymentMethodOrder([]); },
     setCycle(cycle) { setOnboarding((current) => ({ ...current, cycle })); },
     finishOnboarding(account) { const trial = new Date(); trial.setDate(trial.getDate() + 60); setOnboarding((current) => ({ ...current, account, completed: true, trialEndsAt: trial.toISOString() })); },
     setProposal, cancelProposal() { setProposal(null); },
     addCustomCategory(kind, category) { setCustomCategories((current) => current[kind].some((item) => item.name.toLocaleLowerCase('pt-BR') === category.name.toLocaleLowerCase('pt-BR')) ? current : { ...current, [kind]: [...current[kind], category] }); },
     addCustomPaymentMethod(method) { setCustomPaymentMethods((current) => current.some((item) => item.name.toLocaleLowerCase('pt-BR') === method.name.toLocaleLowerCase('pt-BR')) ? current : [...current, method]); },
+    reorderCategories(kind, ids) { setCategoryOrder((current) => ({ ...current, [kind]: ids })); },
+    reorderPaymentMethods(ids) { setPaymentMethodOrder(ids); },
     confirmProposal() {
       if (!proposal) return;
       const confirmedAt = new Date().toISOString();
@@ -196,7 +199,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       queueBillUpsert([settled]);
       return { transactionId: transaction.id, nextDueDate: item.recurrence ? addRecurrence(item.dueDate, item.recurrence.frequency) : undefined };
     },
-  }), [customCategories, customPaymentMethods, hydrated, loadUserState, onboarding, pendingItems, pendingSyncCount, pendingUser, proposal, queueBillDelete, queueBillUpsert, queueDelete, queueUpsert, session, syncState, transactions]);
+  }), [categoryOrder, customCategories, customPaymentMethods, hydrated, loadUserState, onboarding, paymentMethodOrder, pendingItems, pendingSyncCount, pendingUser, proposal, queueBillDelete, queueBillUpsert, queueDelete, queueUpsert, session, syncState, transactions]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

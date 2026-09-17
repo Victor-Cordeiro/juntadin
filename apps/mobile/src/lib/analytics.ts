@@ -104,6 +104,21 @@ export function projectMonths(transactions: ConfirmedTransaction[], fromMonth: D
   return points;
 }
 
+/** Builds a six-month window, adding recurring occurrences only from the current month forward. */
+export function recurringMonthWindow(transactions: ConfirmedTransaction[], startMonth: Date, months: number): MonthPoint[] {
+  const points = Array.from({ length: months }, (_, index) => {
+    const date = addMonths(startMonth, index);
+    const actual = inMonth(transactions, monthKeyOf(date));
+    return { key: monthKeyOf(date), date, income: sumOf(actual, 'income'), expense: sumOf(actual, 'expense'), projected: false };
+  });
+  const currentKey = monthKeyOf(new Date());
+  const future = projectMonths(transactions, addMonths(startMonth, -1), months);
+  return points.map((point, index) => {
+    if (point.key < currentKey) return point;
+    return { ...point, income: point.income + future[index].income, expense: point.expense + future[index].expense };
+  });
+}
+
 export const partyLabels: Record<TransactionParty, string> = { me: 'Eu', partner: 'Parceiro(a)', shared: 'Compartilhado' };
 
 export function todayKey(): string {

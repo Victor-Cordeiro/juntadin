@@ -1,8 +1,8 @@
 import type { PendingItemKind, RecurrenceFrequency, TransactionParty } from '@juntadin/contracts';
 import { parseBRL } from '@juntadin/domain';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Screen, ScrollGrid, uiStyles } from '@/components/juntadin-ui';
 import { CalendarField } from '@/components/calendar-field';
@@ -30,7 +30,8 @@ function Choice<T extends string>({ value, selected, label, icon, iconColor, fil
 export default function NewBillScreen() {
   const router = useRouter();
   const goBack = useGoBack('/bills');
-  const { onboarding, customCategories, addPendingItem } = usePrototype();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const { customCategories, addPendingItem, updatePendingItem, removePendingItem, pendingItems } = usePrototype();
   const { settings } = useHouseholdSettings();
   const { currency } = useMoney();
   const [keypadOpen, setKeypadOpen] = useState(true);
@@ -44,6 +45,15 @@ export default function NewBillScreen() {
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency | null>(null);
   const [details, setDetails] = useState(false);
   const [errors, setErrors] = useState<{ description?: string; amount?: string; date?: string; category?: string }>({});
+  const editing = pendingItems.find((item) => item.id === params.id);
+
+  useEffect(() => {
+    if (!editing) return;
+    // Route params resolve after hydration; synchronize the form once with the selected bill.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setKind(editing.kind); setDescription(editing.description); setAmount((Number(editing.amountCents) / 100).toFixed(2).replace('.', ','));
+    setParty(editing.party ?? 'me'); setCategory(editing.category); setDueDate(editing.dueDate); setNote(editing.note ?? ''); setRecurrenceFrequency(editing.recurrence?.frequency ?? null); setDetails(Boolean(editing.note || editing.recurrence)); setKeypadOpen(false);
+  }, [editing]);
 
   const categoryKind = kind === 'payable' ? 'expense' : 'income';
   const categories = [...presetCategories[categoryKind].map((item) => item.name), ...customCategories[categoryKind].map((item) => item.name)];
@@ -52,11 +62,11 @@ export default function NewBillScreen() {
 
   function submit() {
     const cents = parseBRL(amount);
-    const next = { description: description.trim().length < 2 ? 'Dê um nome para esta conta.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
-    setErrors(next);
-    if (Object.values(next).some(Boolean) || cents === null) return;
-    addPendingItem({
-      id: uuid(),
+    const validation = { description: description.trim().length < 2 ? 'Dê um nome para esta conta.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
+    setErrors(validation);
+    if (Object.values(validation).some(Boolean) || cents === null) return;
+    const next = {
+      id: editing?.id ?? uuid(),
       kind,
       description: description.trim(),
       amountCents: cents,
@@ -65,8 +75,15 @@ export default function NewBillScreen() {
       party: settings.enabled ? party : 'me',
       note: note.trim() || undefined,
       recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined,
-      status: 'pending',
-    });
+      status: 'pending' as const,
+    };
+    if (editing) updatePendingItem(editing.id, next); else addPendingItem(next);
+    router.replace('/bills');
+  }
+
+  function remove() {
+    if (!editing) return;
+    removePendingItem(editing.id);
     router.replace('/bills');
   }
 
@@ -85,7 +102,7 @@ export default function NewBillScreen() {
         </Pressable>
         {errors.amount ? <Text style={styles.error}>{errors.amount}</Text> : null}
       </View>
-      <Field label={kind === 'payable' ? 'Quem cobra ou o que é?' : 'Quem deve?'} value={description} onChangeText={setDescription} error={errors.description} placeholder={kind === 'payable' ? 'Ex.: Felipe, Conta de luz' : 'Ex.: João'} />
+      <Field label={kind === 'payable' ? 'A pagar' : 'A receber'} value={description} onChangeText={setDescription} error={errors.description} placeholder={kind === 'payable' ? 'Ex.: Conta de luz' : 'Ex.: Venda'} />
 
       {settings.enabled ? <View style={styles.group}><Text style={styles.label}>{kind === 'payable' ? 'Quem paga?' : 'Quem recebe?'}</Text><View accessibilityRole="radiogroup" style={styles.partyRow}>{partyOptions.map((item) => <Choice<TransactionParty> key={item.value} value={item.value} selected={party} label={item.label} onPress={setParty} />)}</View></View> : null}
 
@@ -104,7 +121,8 @@ export default function NewBillScreen() {
         <RecurrenceField date={dueDate} frequency={recurrenceFrequency} onChange={setRecurrenceFrequency} />
       </View>}
 
-      <Button label={`Salvar conta ${kind === 'payable' ? 'a pagar' : 'a receber'}`} onPress={submit} />
+      <Button label={`${editing ? 'Atualizar' : 'Salvar'} conta ${kind === 'payable' ? 'a pagar' : 'a receber'}`} onPress={submit} />
+      {editing ? <Button label="Apagar conta" variant="ghost" onPress={() => Alert.alert('Apagar conta?', 'Esta ação não pode ser desfeita.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Apagar', style: 'destructive', onPress: remove }])} /> : null}
     </View>
     <AmountKeypad visible={keypadOpen} value={amount} currencySymbol={currency.symbol} onChange={setAmount} onClose={() => setKeypadOpen(false)} />
   </Screen>;
