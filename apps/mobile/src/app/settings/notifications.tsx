@@ -27,7 +27,7 @@ export default function NotificationsScreen() {
       <Text accessibilityRole="header" style={styles.title}>Notificações</Text>
       <View style={styles.spacer} />
     </View>
-    <Text style={styles.intro}>Escolha o que o Juntadin pode te avisar.</Text>
+    <Text style={styles.intro}>Escolha o que o JuntaDin pode te avisar.</Text>
 
     <View style={styles.list}>
       {visible.map((option, index) => <View key={option.key} style={[styles.row, index > 0 && styles.divider]}>

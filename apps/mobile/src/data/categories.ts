@@ -46,3 +46,7 @@ export const categoryColors = presetColors;
 export function findCategory(kind: CategoryKind, name: string, custom: Category[]) {
   return [...presetCategories[kind], ...custom].find((category) => category.name === name);
 }
+
+export function orderCategories(items: Category[], order: string[]): Category[] {
+  return [...items].sort((a, b) => { const ai = order.indexOf(a.id); const bi = order.indexOf(b.id); return (ai < 0 ? 9999 : ai) - (bi < 0 ? 9999 : bi); });
+}

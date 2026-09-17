@@ -12,7 +12,7 @@ import { chartPalette, findCategory } from '@/data/categories';
 import { findPaymentMethod, presetPaymentMethods } from '@/data/payment-methods';
 import {
   addMonths, dayLabel, groupByDay, groupSlices, inMonth, monthKeyOf, monthLabel,
-  monthSeries, partyLabels, projectMonths, shortMonthLabel, sumOf, type MonthPoint, type Slice,
+  partyLabels, recurringMonthWindow, shortMonthLabel, sumOf, type MonthPoint, type Slice,
 } from '@/lib/analytics';
 import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
@@ -69,13 +69,13 @@ export default function ChartsScreen() {
     icon: key === 'shared' ? 'group' : 'person',
   }));
 
-  function shiftMonth(delta: number) { setMonth((current) => addMonths(current, delta)); }
+  function shiftMonth(delta: number) { setMonth((current) => addMonths(current, delta * (isTrend ? 6 : 1))); }
 
   return <Screen contentStyle={styles.screen} footer={<BottomNav />}>
     <View style={styles.monthNav}>
-      <Pressable accessibilityLabel="Anterior" hitSlop={8} onPress={() => shiftMonth(-1)} disabled={isTrend}><Text style={[styles.arrow, isTrend && styles.arrowOff]}>‹</Text></Pressable>
-      <Text accessibilityRole="header" style={styles.monthTitle}>{isTrend ? 'Últimos 6 meses' : monthLabel(month)}</Text>
-      <Pressable accessibilityLabel="Próximo" hitSlop={8} onPress={() => shiftMonth(1)} disabled={isTrend}><Text style={[styles.arrow, isTrend && styles.arrowOff]}>›</Text></Pressable>
+      <Pressable accessibilityLabel="Anterior" hitSlop={8} onPress={() => shiftMonth(-1)}><Text style={styles.arrow}>‹</Text></Pressable>
+      <Text accessibilityRole="header" style={styles.monthTitle}>{isTrend ? `${shortMonthLabel(month)} — ${shortMonthLabel(addMonths(month, 5))}` : monthLabel(month)}</Text>
+      <Pressable accessibilityLabel="Próximo" hitSlop={8} onPress={() => shiftMonth(1)}><Text style={styles.arrow}>›</Text></Pressable>
     </View>
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
@@ -103,7 +103,7 @@ export default function ChartsScreen() {
       {tab === 'people' && categorySlices.length > 0 ? <View style={styles.card}><Text style={styles.cardTitle}>Por categoria</Text><CategoryBars slices={categorySlices.slice(0, 5)} /></View> : null}
     </> : null}
 
-    {isTrend ? <TrendTab transactions={transactions} limitCents={settings.monthlyLimitCents ? BigInt(settings.monthlyLimitCents) : null} /> : null}
+    {isTrend ? <TrendTab transactions={transactions} startMonth={month} limitCents={settings.monthlyLimitCents ? BigInt(settings.monthlyLimitCents) : null} /> : null}
   </Screen>;
 }
 
@@ -184,29 +184,25 @@ function DailyTab({ items, income, expense, kindOf }: { items: ReturnType<typeof
   </>;
 }
 
-function TrendTab({ transactions, limitCents }: { transactions: ReturnType<typeof usePrototype>['transactions']; limitCents: bigint | null }) {
+function TrendTab({ transactions, startMonth, limitCents }: { transactions: ReturnType<typeof usePrototype>['transactions']; startMonth: Date; limitCents: bigint | null }) {
   const { format } = useMoney();
-  const now = new Date();
-  const history = monthSeries(transactions, now, 6);
-  const projection = projectMonths(transactions, now, 3);
-  const points: TrendPoint[] = [...history, ...projection].map((point) => ({ label: shortMonthLabel(point.date), income: point.income, expense: point.expense, projected: point.projected }));
-  const hasProjection = projection.some((point) => point.income > 0n || point.expense > 0n);
+  const series = recurringMonthWindow(transactions, new Date(startMonth.getFullYear(), startMonth.getMonth(), 1), 6);
+  const points: TrendPoint[] = series.map((point) => ({ label: shortMonthLabel(point.date), income: point.income, expense: point.expense, projected: false }));
 
   return <>
     <View style={styles.card}>
       <TrendChart points={points} limitCents={limitCents} />
-      <Text style={styles.trendHint}>{hasProjection ? 'O traço pontilhado projeta os próximos meses a partir dos movimentos recorrentes.' : 'Marque um movimento como recorrente para ver a projeção dos próximos meses.'}</Text>
+      <Text style={styles.trendHint}>Os meses futuros incluem suas movimentações recorrentes.</Text>
     </View>
-    {[...history].reverse().map((point) => <MonthCard key={point.key} point={point} format={format} />)}
-    {hasProjection ? projection.map((point) => <MonthCard key={point.key} point={point} format={format} projected />) : null}
+    {[...series].reverse().map((point) => <MonthCard key={point.key} point={point} format={format} />)}
   </>;
 }
 
-function MonthCard({ point, format, projected = false }: { point: MonthPoint; format(cents: bigint): string; projected?: boolean }) {
+function MonthCard({ point, format }: { point: MonthPoint; format(cents: bigint): string }) {
   const balance = point.income - point.expense;
   return <View style={styles.monthBlock}>
-    <Text style={styles.monthName}>{monthLabel(point.date).split(' de ')[0]}{projected ? ' (projetado)' : ''}</Text>
-    <View style={[styles.card, styles.monthCard, projected && styles.monthCardProjected]}>
+    <Text style={styles.monthName}>{monthLabel(point.date).split(' de ')[0]}</Text>
+    <View style={[styles.card, styles.monthCard]}>
       <View style={styles.totalBlock}><Text style={styles.totalLabel}>DESPESAS</Text><Text style={styles.monthValue}>{format(point.expense)}</Text></View>
       <View style={styles.totalDivider} />
       <View style={styles.totalBlock}><Text style={styles.totalLabel}>RENDAS</Text><Text style={[styles.monthValue, { color: palette.greenAction }]}>+{format(point.income)}</Text></View>
