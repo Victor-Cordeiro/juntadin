@@ -2,7 +2,7 @@
 
 Versão 2 · 13/09/2026 · derivada da *Especificação do MVP de finanças pelo WhatsApp*
 
-> **O que mudou da v1:** os dois discos viraram **moedas de verdade**, com borda. Entraram duas marcas auxiliares — **a pilha** (juntar) e **a moeda** (marcador e favicon) — e o acento passou a se chamar **Ouro-dindin**. A estrutura de união, o balão e o verde continuam os mesmos.
+> **O que mudou da v2:** o símbolo deixou de ser um balão de conversa e virou uma **pilha de moedas** — duas moedas verdes sustentando a moeda de ouro no topo. O gesto de **juntar** fica explícito na própria marca principal, sem depender da leitura de balão de chat. O verde, o ouro e as marcas auxiliares (pilha, moeda) continuam os mesmos.
 
 ---
 
@@ -47,17 +47,17 @@ Três verbos, na ordem do produto, todos verificáveis. Selo de confiança sempr
 
 ## 4. O símbolo
 
-**Duas moedas que se encontram e formam um balão de conversa.**
+**Uma pilha de moedas: duas moedas verdes sustentam a moeda de ouro que se junta.**
 
-- Cada disco tem **borda de moeda** — o anel concêntrico é o que faz a forma ler como dinheiro e não como círculo genérico. É a mudança da v2.
-- O **ouro no meio** é o que se junta. No Modo Casal, é o espaço compartilhado: existe, é visível, e termina onde termina. O que está fora dele é de cada um.
-- O **rabinho** embaixo faz o conjunto virar um balão de mensagem — o canal de onde tudo nasce.
+- As duas moedas de baixo são **Verde-cofre/Verde-juntado** — a base já formada, o que já foi guardado.
+- A moeda de cima é **Ouro-dindin**, com a lente vazada em Papel — é o que está se juntando agora, sempre no topo.
+- O empilhamento é o próprio gesto de **juntar**: cresce de baixo para cima, sem precisar de seta, gráfico ou robô para dizer isso.
 
-Nenhum cifrão, nenhum gráfico, nenhuma seta subindo, nenhum robô. Quatro clichês da categoria eliminados de uma vez; o dinheiro aparece pela **forma da moeda**.
+Nenhum cifrão, nenhum gráfico, nenhuma seta subindo, nenhum robô. O dinheiro aparece pela **forma da moeda**, e o ato de juntar aparece pela **pilha**.
 
 ### Construção
 
-Grade de 128 × 112. Dois círculos de raio 32, centros em (42, 48) e (86, 48). Borda vazada entre raio 22,2 e 25. Lente resultante de 20 × 46. Rabinho ancorado a 225° do disco esquerdo. **Não redesenhe no olho** — use os SVGs entregues.
+Três moedas empilhadas em elipses de raio 33 × 12,5, com a "lateral" de cada moeda desenhada como um retângulo entre uma elipse e a próxima. A moeda do topo é Ouro-dindin, com anel vazado em Papel/Menta. **Não redesenhe no olho** — use os SVGs entregues.
 
 ### Versões
 
