@@ -71,10 +71,23 @@ export const authService: AuthService = {
       throw new Error('Não foi possível concluir o login com Google.');
     }
 
-    const callbackUrl = new URL(result.url);
-    const hash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
-    const accessToken = hash.get('access_token');
-    const refreshToken = hash.get('refresh_token');
+    let accessToken: string | null = null;
+    let refreshToken: string | null = null;
+    try {
+      const callbackUrl = new URL(result.url);
+      const oauthError = callbackUrl.searchParams.get('error');
+      if (oauthError) {
+        const description = callbackUrl.searchParams.get('error_description');
+        if (oauthError === 'access_denied' || /signup/i.test(description ?? '')) throw new Error('Não foi possível entrar com essa conta Google. Tente criar uma conta primeiro.');
+        throw new Error('O Google recusou o login. Tente novamente.');
+      }
+      const hash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
+      accessToken = hash.get('access_token');
+      refreshToken = hash.get('refresh_token');
+    } catch (parseError) {
+      if (parseError instanceof Error && parseError.message) throw parseError;
+      throw new Error('Não foi possível concluir o login com Google.');
+    }
     if (!accessToken || !refreshToken) throw new Error('O Google não retornou uma sessão válida.');
 
     const { data: sessionData, error: sessionError } = await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });

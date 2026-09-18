@@ -11,6 +11,17 @@
         "start"
       ],
       "port": 8081
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "corepack",
+      "runtimeArgs": [
+        "pnpm",
+        "--filter",
+        "@juntadin/mobile",
+        "web"
+      ],
+      "port": 8081
     }
   ]
 }
