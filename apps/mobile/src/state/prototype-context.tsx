@@ -12,14 +12,15 @@ import { uuid } from '@/lib/uuid';
 import type { PaymentMethodOption } from '@/data/payment-methods';
 import { fetchTransactions, resolveSpaceId } from '@/services/transactions-remote';
 import { fetchPendingItems } from '@/services/bills-remote';
-import { enqueue, flushQueue, readQueue, type SyncState } from '@/services/sync-queue';
-import { enqueueBillsOperation, flushBillsQueue, readBillsQueue } from '@/services/bills-sync-queue';
+import { clearQueue, enqueue, flushQueue, readQueue, type SyncState } from '@/services/sync-queue';
+import { clearBillsQueue, enqueueBillsOperation, flushBillsQueue, readBillsQueue } from '@/services/bills-sync-queue';
+import { removeProfilePhoto } from '@/lib/profile-photo';
 
 export type ConfirmedTransaction = Omit<TransactionProposal, 'status'> & { status: 'confirmed'; confirmedAt: string };
 type UserState = { onboarding: OnboardingState; transactions: ConfirmedTransaction[]; pendingItems: PendingItem[]; customCategories: { expense: Category[]; income: Category[] }; customPaymentMethods: PaymentMethodOption[]; categoryOrder: { expense: string[]; income: string[] }; paymentMethodOrder: string[] };
 type SettleInput = { settledDate: string; paymentMethod?: string };
 type SettleResult = { transactionId: string; nextDueDate?: string };
-type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; syncState: SyncState; pendingSyncCount: number; signIn(input: SignInInput): Promise<void>; signInWithGoogle(): Promise<void>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; reorderCategories(kind: CategoryKind, ids: string[]): void; reorderPaymentMethods(ids: string[]): void; cancelProposal(): void; confirmProposal(): void; addTransaction(transaction: ConfirmedTransaction): void; updateTransaction(id: string, changes: Partial<ConfirmedTransaction>): void; removeTransaction(id: string): void; replaceTransactions(next: ConfirmedTransaction[]): void; addPendingItem(item: PendingItem): void; updatePendingItem(id: string, changes: Partial<PendingItem>): void; removePendingItem(id: string): void; settlePendingItem(id: string, input: SettleInput): SettleResult | undefined };
+type Value = UserState & { hydrated: boolean; session: AuthUser | null; pendingUser: AuthUser | null; proposal: TransactionProposal | null; syncState: SyncState; pendingSyncCount: number; signIn(input: SignInInput): Promise<void>; signInWithGoogle(): Promise<AuthUser>; signUp(input: SignUpInput): Promise<void>; verifyEmail(): Promise<void>; acceptLegalTerms(): Promise<void>; deleteAccount(): Promise<void>; signOut(): Promise<void>; setCycle(cycle: FinancialCycle): void; finishOnboarding(account: AccountDraft): void; setProposal(value: TransactionProposal): void; addCustomCategory(kind: CategoryKind, category: Category): void; addCustomPaymentMethod(method: PaymentMethodOption): void; reorderCategories(kind: CategoryKind, ids: string[]): void; reorderPaymentMethods(ids: string[]): void; cancelProposal(): void; confirmProposal(): void; addTransaction(transaction: ConfirmedTransaction): void; updateTransaction(id: string, changes: Partial<ConfirmedTransaction>): void; removeTransaction(id: string): void; replaceTransactions(next: ConfirmedTransaction[]): void; addPendingItem(item: PendingItem): void; updatePendingItem(id: string, changes: Partial<PendingItem>): void; removePendingItem(id: string): void; settlePendingItem(id: string, input: SettleInput): SettleResult | undefined };
 
 const Context = createContext<Value | null>(null);
 const emptyState: UserState = { onboarding: { completed: false }, transactions: [], pendingItems: [], customCategories: { expense: [], income: [] }, customPaymentMethods: [], categoryOrder: { expense: [], income: [] }, paymentMethodOrder: [] };
@@ -127,12 +128,25 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<Value>(() => ({ hydrated, session, pendingUser, onboarding, proposal, transactions, pendingItems, customCategories, customPaymentMethods, categoryOrder, paymentMethodOrder, syncState, pendingSyncCount,
     async signIn(input) { setHydrated(false); try { const user = await authService.signIn(input); setSession(user); await loadUserState(user); } finally { setHydrated(true); } },
-    async signInWithGoogle() { setHydrated(false); try { const user = await authService.signInWithGoogle(); setSession(user); await loadUserState(user); } finally { setHydrated(true); } },
+    async signInWithGoogle() { setHydrated(false); try { const user = await authService.signInWithGoogle(); setSession(user); await loadUserState(user); return user; } finally { setHydrated(true); } },
     async signUp(input) { const user = await authService.signUp(input); setPendingUser(null); setSession(user); await loadUserState(user); },
     async verifyEmail() { const user = await authService.confirmEmailSession(); setSession(user); setPendingUser(null); await loadUserState(user); },
+    async acceptLegalTerms() { const user = await authService.acceptLegalTerms(); setSession(user); },
+    async deleteAccount() {
+      if (!session) return;
+      const userId = session.id;
+      const settingsKey = `@juntadin/household-settings/${userId}`;
+      const rawSettings = await AsyncStorage.getItem(settingsKey);
+      if (rawSettings) {
+        try { removeProfilePhoto((JSON.parse(rawSettings) as { photoUri?: string | null }).photoUri); } catch { /* malformed local settings are removed below */ }
+      }
+      await authService.deleteAccount();
+      await Promise.all([AsyncStorage.removeItem(storageKey(userId)), AsyncStorage.removeItem(settingsKey), clearQueue(userId), clearBillsQueue(userId)]);
+      setSession(null); setPendingUser(null); setProposal(null); setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); setCategoryOrder(emptyState.categoryOrder); setPaymentMethodOrder([]);
+    },
     async signOut() { await authService.signOut(); setSession(null); setPendingUser(null); setProposal(null); setOnboarding(emptyState.onboarding); setTransactions([]); setPendingItems([]); setCustomCategories(emptyState.customCategories); setCustomPaymentMethods(emptyState.customPaymentMethods); setCategoryOrder(emptyState.categoryOrder); setPaymentMethodOrder([]); },
     setCycle(cycle) { setOnboarding((current) => ({ ...current, cycle })); },
-    finishOnboarding(account) { const trial = new Date(); trial.setDate(trial.getDate() + 60); setOnboarding((current) => ({ ...current, account, completed: true, trialEndsAt: trial.toISOString() })); },
+    finishOnboarding(account) { setOnboarding((current) => ({ ...current, account, completed: true, trialEndsAt: undefined })); },
     setProposal, cancelProposal() { setProposal(null); },
     addCustomCategory(kind, category) { setCustomCategories((current) => current[kind].some((item) => item.name.toLocaleLowerCase('pt-BR') === category.name.toLocaleLowerCase('pt-BR')) ? current : { ...current, [kind]: [...current[kind], category] }); },
     addCustomPaymentMethod(method) { setCustomPaymentMethods((current) => current.some((item) => item.name.toLocaleLowerCase('pt-BR') === method.name.toLocaleLowerCase('pt-BR')) ? current : [...current, method]); },

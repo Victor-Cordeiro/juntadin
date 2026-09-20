@@ -1,5 +1,5 @@
 import { validateSignIn, type SignInInput } from '@juntadin/contracts';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -13,7 +13,7 @@ export default function LoginScreen() {
   async function submit() { const next = validateSignIn(input); setErrors(next); setMessage(''); if (Object.keys(next).length) return; setBusy(true); // The dashboard guard reads the freshly loaded state and sends the user to
 // onboarding when it is still pending — deciding here would use a stale closure.
     try { await signIn(input); router.replace('/dashboard'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível entrar. Tente de novo.'); } finally { setBusy(false); } }
-  async function submitGoogle() { setBusy(true); setMessage(''); try { await signInWithGoogle(); router.replace('/dashboard'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível entrar com Google.'); } finally { setBusy(false); } }
+  async function submitGoogle() { setBusy(true); setMessage(''); try { const user = await signInWithGoogle(); router.replace((user.legalAccepted ? '/dashboard' : '/auth/consent') as Href); } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível entrar com Google.'); } finally { setBusy(false); } }
   return <Screen><BrandMark withName /><PageHeader title="Que bom ter você de volta." subtitle="Entre para continuar de onde parou." />
   <View style={styles.googleOption}><Button label="Continuar com Google" variant="secondary" loading={busy} onPress={submitGoogle} /><View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>ou entre com e-mail</Text><View style={styles.orLine} /></View></View>
   <View style={uiStyles.form}>

@@ -11,7 +11,7 @@ export type CapturedMedia = Readonly<{ base64: string; mimeType: string }>;
  */
 export async function captureReceiptImage(source: 'camera' | 'library'): Promise<CapturedMedia | null> {
   const permission = source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) throw new Error(source === 'camera' ? 'Precisamos da câmera para fotografar o recibo.' : 'Precisamos da sua permissão para abrir as fotos.');
+  if (!permission.granted) throw new Error(source === 'camera' ? 'Autorize a câmera para fotografar o recibo que será processado pela JuntaAI.' : 'Autorize o acesso para escolher a imagem que será processada pela JuntaAI.');
 
   const launch = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
   const result = await launch({ mediaTypes: ['images'], quality: 0.5, base64: true });
@@ -30,7 +30,7 @@ export function useAudioCapture() {
 
   async function start() {
     const permission = await requestRecordingPermissionsAsync();
-    if (!permission.granted) throw new Error('Precisamos do microfone para gravar sua mensagem.');
+    if (!permission.granted) throw new Error('Autorize o microfone para enviar seu lançamento por voz à JuntaAI.');
     await recorder.prepareToRecordAsync();
     recorder.record();
   }

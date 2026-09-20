@@ -95,6 +95,7 @@ export default function AiChatScreen() {
       <View style={styles.top} />
     </View>
     <Text style={styles.title}>JuntaAi</Text>
+    <Text style={styles.aiNotice}>Textos, imagens e áudios enviados aqui são processados pelo Supabase e Google Cloud apenas para preparar o lançamento. Confira os dados antes de confirmar.</Text>
     <View style={styles.thread}>
       {messages.map((message) => <View key={message.id} style={[styles.bubbleWrap, message.from === 'me' && styles.bubbleWrapMe]}>
         <View style={[styles.bubble, message.from === 'me' ? styles.bubbleMe : styles.bubbleIa, message.error && styles.bubbleError]}>
@@ -139,6 +140,7 @@ const styles = StyleSheet.create({
   back: { position: 'absolute', left: 0, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   backIcon: { color: palette.greenVault, fontSize: 30, lineHeight: 32 },
   title: { color: palette.ink, fontFamily: font.display, fontSize: 24, textAlign: 'center' },
+  aiNotice: { color: palette.inkMuted, fontFamily: font.regular, fontSize: 12, lineHeight: 18, textAlign: 'center', backgroundColor: palette.mint, borderRadius: 14, padding: 12 },
   thread: { gap: 10 },
   bubbleWrap: { flexDirection: 'row' },
   bubbleWrapMe: { justifyContent: 'flex-end' },

@@ -4,8 +4,8 @@ select plan(8);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ana@example.com', crypt('Password1', gen_salt('bf')), now(), '{}', '{"display_name":"Ana","phone_e164":"+5511999999999"}', now(), now()),
-  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bia@example.com', crypt('Password1', gen_salt('bf')), now(), '{}', '{"display_name":"Bia","phone_e164":"+5521999999999"}', now(), now());
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ana@example.com', crypt('Password1', gen_salt('bf')), now(), '{}', '{"display_name":"Ana","accepts_terms":true,"confirms_adult":true}', now(), now()),
+  ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bia@example.com', crypt('Password1', gen_salt('bf')), now(), '{}', '{"display_name":"Bia","accepts_terms":true,"confirms_adult":true}', now(), now());
 
 select is((select count(*)::integer from public.profiles where user_id in ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002')), 2, 'confirmation provisions two profiles');
 select is((select count(*)::integer from public.spaces where kind = 'personal' and owner_user_id in ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002')), 2, 'each user receives one personal space');

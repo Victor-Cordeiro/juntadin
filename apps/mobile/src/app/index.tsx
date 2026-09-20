@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
     <View style={styles.actions}>
       <Button label="Criar minha conta" onPress={() => router.push('/auth/signup')} />
       <Button label="Já tenho conta" variant="secondary" onPress={() => router.push('/auth/login')} />
-      <Text style={styles.note}>60 dias completos, sem cartão.</Text>
+      <Text style={styles.note}>Comece gratuitamente. Seus dados continuam sob seu controle.</Text>
     </View>
   </Screen>;
 }

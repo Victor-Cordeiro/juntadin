@@ -1,7 +1,7 @@
 import { parseBRL } from '@juntadin/domain';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { BottomNav } from '@/components/bottom-nav';
@@ -13,6 +13,7 @@ import { useMoney } from '@/hooks/use-money';
 import { usePrototype } from '@/state/prototype-context';
 import { useHouseholdSettings } from '@/state/use-household-settings';
 import { font, palette } from '@/theme/tokens';
+import { LEGAL_URLS, SUPPORT_EMAIL } from '@/config/legal';
 
 type RowProps = { icon: string; title: string; body?: string; value?: string; onPress?: () => void };
 function SettingsRow({ icon, title, body, value, onPress }: RowProps) {
@@ -82,7 +83,12 @@ export default function SettingsScreen() {
       <SettingsRow icon="notifications" title="Notificações" onPress={() => router.push('/settings/notifications')} />
     </View>
     <Text style={styles.sectionLabel}>DADOS E CONTA</Text>
-    <View style={styles.group}><SettingsRow icon="download" title="Exportar movimentos" body="Em breve" /></View>
+    <View style={styles.group}>
+      <SettingsRow icon="privacy_tip" title="Política de Privacidade" onPress={() => Linking.openURL(LEGAL_URLS.privacy)} />
+      <SettingsRow icon="description" title="Termos de Uso" onPress={() => Linking.openURL(LEGAL_URLS.terms)} />
+      <SettingsRow icon="support_agent" title="Suporte" body={SUPPORT_EMAIL} onPress={() => Linking.openURL(LEGAL_URLS.support)} />
+      <SettingsRow icon="delete_forever" title="Excluir minha conta" body="Apaga sua conta e os dados associados" onPress={() => router.push('/settings/delete-account' as Href)} />
+    </View>
     {__DEV__ ? <>
       <Text style={styles.sectionLabel}>DESENVOLVIMENTO</Text>
       <View style={styles.group}>
