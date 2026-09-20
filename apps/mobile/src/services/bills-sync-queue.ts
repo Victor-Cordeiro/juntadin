@@ -61,7 +61,8 @@ export async function flushBillsQueue(userId: string, spaceId: string): Promise<
         await writeQueue(userId, remaining);
         return { sent, pending: remaining.length, offline: true };
       }
-      remaining.shift();
+      await writeQueue(userId, remaining);
+      return { sent, pending: remaining.length, offline: true };
     }
   }
 
@@ -72,4 +73,8 @@ export async function flushBillsQueue(userId: string, spaceId: string): Promise<
 function isNetworkError(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return message.includes('network') || message.includes('fetch') || message.includes('timeout') || message.includes('failed to');
+}
+
+export async function clearBillsQueue(userId: string): Promise<void> {
+  await AsyncStorage.removeItem(queueKey(userId));
 }

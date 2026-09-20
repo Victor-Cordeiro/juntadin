@@ -1,5 +1,5 @@
 import { useMoney } from '@/hooks/use-money';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -17,8 +17,8 @@ function monthTitle(date: Date) { return new Intl.DateTimeFormat('pt-BR', { mont
 
 export default function DashboardScreen() {
   const router = useRouter(); const { hydrated, session, onboarding, transactions, pendingItems } = usePrototype(); const { settings } = useHouseholdSettings(); const { format } = useMoney(); const [month, setMonth] = useState(() => new Date());
-  useEffect(() => { if (hydrated && !session) router.replace('/auth/login'); else if (hydrated && session && !onboarding.completed) router.replace('/onboarding/cycle'); }, [hydrated, onboarding.completed, router, session]);
-  if (!hydrated || !session || !onboarding.completed) return null;
+  useEffect(() => { if (hydrated && !session) router.replace('/auth/login'); else if (hydrated && session && !session.legalAccepted) router.replace('/auth/consent' as Href); else if (hydrated && session && !onboarding.completed) router.replace('/onboarding/cycle'); }, [hydrated, onboarding.completed, router, session]);
+  if (!hydrated || !session || !session.legalAccepted || !onboarding.completed) return null;
   const pendingPayable = pendingItems.filter((item) => item.status === 'pending' && item.kind === 'payable');
   const pendingPayableTotal = pendingPayable.reduce((sum, item) => sum + item.amountCents, 0n);
   const selectedMonth = monthKey(month); const visible = transactions.filter((item) => item.localDate.startsWith(selectedMonth));

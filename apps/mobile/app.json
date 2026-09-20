@@ -18,6 +18,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "package": "com.juntadin.app"
     },
     "web": {
@@ -30,13 +36,13 @@
         "expo-image-picker",
         {
           "photosPermission": "O JuntaDin precisa acessar suas fotos para você escolher uma foto de perfil. Ela fica salva apenas neste aparelho.",
-          "cameraPermission": "O JuntaDin precisa da câmera para fotografar um recibo ou boleto. A foto é usada só na hora e nunca é salva."
+          "cameraPermission": "O JuntaDin usa a câmera quando você decide fotografar um recibo. A imagem é enviada com segurança ao Google Cloud para extrair o lançamento e não é adicionada à sua conta."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "O JuntaDin precisa do microfone para você contar um lançamento por voz. O áudio é usado só na hora e nunca é salvo."
+          "microphonePermission": "O JuntaDin usa o microfone quando você decide ditar um lançamento. O áudio é enviado com segurança ao Google Cloud para extrair os dados e não é adicionado à sua conta."
         }
       ],
       [
@@ -46,7 +52,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

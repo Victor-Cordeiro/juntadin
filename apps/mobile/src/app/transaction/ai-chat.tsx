@@ -8,6 +8,7 @@ import { useGoBack } from '@/hooks/use-back';
 import { captureReceiptImage, useAudioCapture } from '@/lib/ai-capture';
 import { extractTransaction, ExtractionError } from '@/services/ai-extraction';
 import { usePrototype } from '@/state/prototype-context';
+import { answerFinancialQuery } from '@/lib/financial-query';
 import { font, palette } from '@/theme/tokens';
 
 type ChatMessage = { id: string; from: 'me' | 'ia'; text: string; error?: boolean };
@@ -18,7 +19,7 @@ const nextId = () => String((messageId += 1));
 export default function AiChatScreen() {
   const router = useRouter();
   const goBack = useGoBack('/dashboard');
-  const { hydrated, session, onboarding, customCategories, customPaymentMethods, setProposal } = usePrototype();
+  const { hydrated, session, onboarding, customCategories, customPaymentMethods, transactions, pendingItems, setProposal } = usePrototype();
   const [messages, setMessages] = useState<ChatMessage[]>([{ id: nextId(), from: 'ia', text: 'Oi! Me conta um gasto ou uma renda por texto, foto de um recibo/boleto ou áudio — eu preparo o lançamento pra você confirmar.' }]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -52,6 +53,11 @@ export default function AiChatScreen() {
     if (!value || busy) return;
     say('me', value);
     setText('');
+    const query = answerFinancialQuery({ text: value, transactions, pendingItems });
+    if (query.handled) {
+      say('ia', query.answer ?? 'Não encontrei dados para essa consulta.');
+      return;
+    }
     send({ mode: 'text', text: value });
   }
 
@@ -89,6 +95,7 @@ export default function AiChatScreen() {
       <View style={styles.top} />
     </View>
     <Text style={styles.title}>JuntaAi</Text>
+    <Text style={styles.aiNotice}>Textos, imagens e áudios enviados aqui são processados pelo Supabase e Google Cloud apenas para preparar o lançamento. Confira os dados antes de confirmar.</Text>
     <View style={styles.thread}>
       {messages.map((message) => <View key={message.id} style={[styles.bubbleWrap, message.from === 'me' && styles.bubbleWrapMe]}>
         <View style={[styles.bubble, message.from === 'me' ? styles.bubbleMe : styles.bubbleIa, message.error && styles.bubbleError]}>
@@ -133,6 +140,7 @@ const styles = StyleSheet.create({
   back: { position: 'absolute', left: 0, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   backIcon: { color: palette.greenVault, fontSize: 30, lineHeight: 32 },
   title: { color: palette.ink, fontFamily: font.display, fontSize: 24, textAlign: 'center' },
+  aiNotice: { color: palette.inkMuted, fontFamily: font.regular, fontSize: 12, lineHeight: 18, textAlign: 'center', backgroundColor: palette.mint, borderRadius: 14, padding: 12 },
   thread: { gap: 10 },
   bubbleWrap: { flexDirection: 'row' },
   bubbleWrapMe: { justifyContent: 'flex-end' },

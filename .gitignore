@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 .expo/
 dist/
+apps/mobile/dist-play-check/
 web-build/
 coverage/
 .env

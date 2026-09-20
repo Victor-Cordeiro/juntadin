@@ -15,8 +15,8 @@ import { useHouseholdSettings } from '@/state/use-household-settings';
 import { font, palette } from '@/theme/tokens';
 import { findCategory, orderCategories, presetCategories } from '@/data/categories';
 import { orderPaymentMethods, presetPaymentMethods } from '@/data/payment-methods';
-import { formatShortDatePT, todayISODate } from '@/lib/dates';
-import { installmentOptions, splitInstallments } from '@/lib/installments';
+import { formatShortDatePT, parseISODate, todayISODate } from '@/lib/dates';
+import { installmentOptions, isValidInstallmentCount, splitInstallments } from '@/lib/installments';
 import { uuid } from '@/lib/uuid';
 
 const partyOptions: { value: TransactionParty; label: string }[] = [{ value: 'me', label: 'Eu' }, { value: 'partner', label: 'Parceiro(a)' }, { value: 'shared', label: 'Compartilhado' }];
@@ -68,10 +68,10 @@ export default function NewTransactionScreen() {
 
   function submit() {
     const cents = parseBRL(amount);
-    const next = { description: description.trim().length < 2 ? 'Dê um nome para este movimento.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
+    const next = { description: description.trim().length < 2 ? 'Dê um nome para este movimento.' : undefined, amount: cents === null ? 'Digite um valor maior que zero.' : undefined, date: parseISODate(date) ? undefined : 'Escolha uma data.', category: category ? undefined : 'Escolha uma categoria.' };
     setErrors(next);
     if (Object.values(next).some(Boolean) || cents === null) return;
-    setProposal({ id: uuid(), kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party: settings.enabled ? party : 'me', paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, installment: canInstall && installments > 1 ? { purchaseId: '', number: 1, total: installments, purchaseAmountCents: cents } : undefined, status: 'proposed' });
+    setProposal({ id: uuid(), kind, description: description.trim(), amountCents: cents, accountName: onboarding.account?.name ?? 'Conta principal', category, localDate: date, party: settings.enabled ? party : 'me', paymentMethod, note: note.trim() || undefined, recurrence: recurrenceFrequency ? { frequency: recurrenceFrequency } : undefined, installment: canInstall && isValidInstallmentCount(installments) ? { purchaseId: '', number: 1, total: installments, purchaseAmountCents: cents } : undefined, status: 'proposed' });
     router.push('/transaction/review');
   }
 
