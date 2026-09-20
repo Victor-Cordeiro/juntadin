@@ -1,7 +1,5 @@
-/* eslint-disable react-hooks/refs */
 import { useRouter } from 'expo-router';
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/juntadin-ui';
 import { CategoryIcon } from '@/components/category-icon';
@@ -18,7 +16,7 @@ export default function PaymentMethodsScreen() {
   function move(from: number, to: number) { if (to < 0 || to >= methods.length) return; const ids = methods.map((item) => item.id); const [item] = ids.splice(from, 1); ids.splice(to, 0, item); reorderPaymentMethods(ids); }
   return <Screen>
     <View style={styles.top}><Pressable accessibilityLabel="Voltar" onPress={goBack}><Text style={styles.back}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.title}>Editar métodos</Text><Pressable accessibilityLabel="Adicionar método" onPress={() => router.push('/settings/payment-methods/new')}><Text style={styles.plus}>＋</Text></Pressable></View>
-    <Text style={styles.hint}>Arraste para reordenar</Text><View style={styles.list}>{methods.map((method, index) => <DraggableMethod key={method.id} method={method} index={index} onMove={move} />)}</View>
+    <Text style={styles.hint}>Use as setas para definir a prioridade</Text><View style={styles.list}>{methods.map((method, index) => <OrderedMethod key={method.id} method={method} index={index} count={methods.length} onMove={move} />)}</View>
   </Screen>;
 }
 
@@ -32,7 +30,7 @@ const styles = StyleSheet.create({
   iconBox: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.mint },
   itemName: { flex: 1, color: palette.ink, fontFamily: font.semibold, fontSize: 17 },
   hint: { color: palette.inkMuted, fontFamily: font.regular, fontSize: 13, marginTop: 12 },
-  dragHandle: { padding: 10 }, drag: { color: palette.border, fontSize: 24 },
+  controls: { flexDirection: 'row', gap: 6 }, moveButton: { width: 38, height: 38, borderRadius: 12, backgroundColor: palette.mint, alignItems: 'center', justifyContent: 'center' }, moveButtonDisabled: { opacity: .3 }, moveText: { color: palette.greenVault, fontFamily: font.semibold, fontSize: 20 },
 });
 
-function DraggableMethod({ method, index, onMove }: { method: (typeof presetPaymentMethods)[number]; index: number; onMove(from: number, to: number): void }) { const start = useRef(0); const responder = useRef(PanResponder.create({ onStartShouldSetPanResponder: () => true, onPanResponderGrant: () => { start.current = index; }, onPanResponderMove: (_event, gesture) => { const offset = Math.round(gesture.dy / 72); if (offset) { const target = start.current + offset; onMove(start.current, target); start.current = target; } } })).current; return <View style={styles.item}><View style={styles.iconBox}><CategoryIcon name={method.icon} color={palette.greenVault} size={26} /></View><Text style={styles.itemName}>{method.name}</Text><View accessibilityLabel={`Arrastar ${method.name}`} {...responder.panHandlers} style={styles.dragHandle}><Text style={styles.drag}>⠿</Text></View></View>; }
+function OrderedMethod({ method, index, count, onMove }: { method: (typeof presetPaymentMethods)[number]; index: number; count: number; onMove(from: number, to: number): void }) { return <View style={styles.item}><View style={styles.iconBox}><CategoryIcon name={method.icon} color={palette.greenVault} size={26} /></View><Text style={styles.itemName}>{method.name}</Text><View style={styles.controls}><Pressable accessibilityLabel={`Mover ${method.name} para cima`} disabled={index === 0} onPress={() => onMove(index, index - 1)} style={[styles.moveButton, index === 0 && styles.moveButtonDisabled]}><Text style={styles.moveText}>↑</Text></Pressable><Pressable accessibilityLabel={`Mover ${method.name} para baixo`} disabled={index === count - 1} onPress={() => onMove(index, index + 1)} style={[styles.moveButton, index === count - 1 && styles.moveButtonDisabled]}><Text style={styles.moveText}>↓</Text></Pressable></View></View>; }

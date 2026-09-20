@@ -7,7 +7,8 @@ export function parseISODate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (Number.isNaN(date.getTime())) return null;
+  return toISODate(date) === value ? date : null;
 }
 
 export function toISODate(date: Date): string {
@@ -49,10 +50,18 @@ export function addRecurrence(value: string, frequency: RecurrenceFrequency): st
   switch (frequency) {
     case 'weekly': next.setDate(next.getDate() + 7); break;
     case 'biweekly': next.setDate(next.getDate() + 14); break;
-    case 'monthly': next.setMonth(next.getMonth() + 1); break;
-    case 'bimonthly': next.setMonth(next.getMonth() + 2); break;
-    case 'quarterly': next.setMonth(next.getMonth() + 3); break;
+    case 'monthly': return addMonthsClamped(date, 1);
+    case 'bimonthly': return addMonthsClamped(date, 2);
+    case 'quarterly': return addMonthsClamped(date, 3);
     case 'yearly': next.setFullYear(next.getFullYear() + 1); break;
   }
   return toISODate(next);
+}
+
+/** Adds calendar months without overflowing into the following month. */
+export function addMonthsClamped(date: Date, months: number): string {
+  const day = date.getDate();
+  const target = new Date(date.getFullYear(), date.getMonth() + months + 1, 0);
+  target.setDate(Math.min(day, target.getDate()));
+  return toISODate(target);
 }
