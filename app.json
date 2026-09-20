@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "3568f110-74db-440b-94b9-00b14fef8179"
+      }
+    },
+    "android": {
+      "package": "com.appcordeiro.juntadin"
+    }
+  }
+}
