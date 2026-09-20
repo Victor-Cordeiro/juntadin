@@ -10,9 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
-      "node": "24.16.0",
-      "pnpm": "8.7.5",
-      "corepack": true
+      "node": "24.16.0"
     },
     "production": {
       "autoIncrement": true
