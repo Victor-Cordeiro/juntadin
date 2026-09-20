@@ -15,7 +15,7 @@ export class ExtractionError extends Error {
 }
 
 type ExtractResponse =
-  | { ok: true; proposal: { kind: 'expense' | 'income'; description: string; amountCents: string; category: string; paymentMethod: string | null; localDate: string; note?: string } }
+  | { ok: true; proposal: { kind: 'expense' | 'income'; description: string; amountCents: string; category: string; paymentMethod: string | null; localDate: string; note?: string; installmentTotal?: number } }
   | { ok: false; error: ExtractionErrorCode; message: string };
 
 /**
@@ -45,18 +45,40 @@ export async function extractTransaction(
   const category = findCategory(kind, result.proposal.category, customCategories[kind])?.name ?? presetCategories[kind][0].name;
   const fallbackMethod = presetPaymentMethods.find((method) => method.id === 'other')!.name;
   const paymentMethod = result.proposal.paymentMethod && findPaymentMethod(result.proposal.paymentMethod, customPaymentMethods) ? result.proposal.paymentMethod : fallbackMethod;
+  const amountCents = parseAmountCents(result.proposal.amountCents);
+  if (amountCents === null) throw new ExtractionError('unreadable_input', 'A IA retornou um valor inválido.');
+  const installmentTotal = result.proposal.installmentTotal ?? inferInstallmentTotal(result.proposal.note, result.proposal.description);
+  const validInstallments = kind === 'expense' && paymentMethodIsCredit(paymentMethod, customPaymentMethods) && Number.isInteger(installmentTotal) && installmentTotal! > 1 && installmentTotal! <= 60;
 
   return {
     id: uuid(),
     kind,
     description: result.proposal.description,
-    amountCents: BigInt(result.proposal.amountCents),
+    amountCents,
     accountName: 'Conta principal',
     category,
     localDate: result.proposal.localDate,
     party: 'me',
     paymentMethod,
     note: result.proposal.note,
+    installment: validInstallments ? { purchaseId: '', number: 1, total: installmentTotal!, purchaseAmountCents: amountCents } : undefined,
     status: 'proposed',
   };
+}
+
+function parseAmountCents(value: string): bigint | null {
+  if (!/^\d+$/.test(value)) return null;
+  const cents = BigInt(value);
+  return cents > 0n ? cents : null;
+}
+
+function paymentMethodIsCredit(name: string, custom: PaymentMethodOption[]): boolean {
+  return [...presetPaymentMethods, ...custom].some((method) => method.name === name && method.credit);
+}
+
+function inferInstallmentTotal(...values: (string | undefined)[]): number | undefined {
+  const text = values.filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
+  const match = /(?:([2-9]|[1-5]\d|60)\s*[x×]|(?:em|de|em até)\s+([2-9]|[1-5]\d|60)\s+(?:vezes|parcelas?))/i.exec(text);
+  const count = Number(match?.[1] ?? match?.[2]);
+  return Number.isInteger(count) && count >= 2 && count <= 60 ? count : undefined;
 }

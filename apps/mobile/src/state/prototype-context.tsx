@@ -29,13 +29,14 @@ function serializeState(value: UserState): string { return JSON.stringify(value,
 function parseState(raw: string): UserState { const parsed = JSON.parse(raw, (_key, item: unknown) => item && typeof item === 'object' && '__juntadinBigInt' in item ? BigInt(String((item as { __juntadinBigInt: unknown }).__juntadinBigInt)) : item) as Partial<UserState>; const customCategories = parsed.customCategories ?? emptyState.customCategories; const normalize = (items: unknown[], kind: CategoryKind): Category[] => items.map((item, index) => { if (typeof item === 'string') return { id: `legacy-${kind}-${index}`, name: item, icon: 'sell', color: '#0E7A63' }; const category = item as Category; return { ...category, icon: /^[a-z0-9_]+$/.test(category.icon) ? category.icon : 'category' }; }); return { onboarding: parsed.onboarding ?? emptyState.onboarding, transactions: parsed.transactions ?? [], pendingItems: parsed.pendingItems ?? [], customCategories: { expense: normalize(customCategories.expense ?? [], 'expense'), income: normalize(customCategories.income ?? [], 'income') }, customPaymentMethods: parsed.customPaymentMethods ?? emptyState.customPaymentMethods, categoryOrder: parsed.categoryOrder ?? emptyState.categoryOrder, paymentMethodOrder: parsed.paymentMethodOrder ?? emptyState.paymentMethodOrder }; }
 
 /**
- * The server is the source of truth once reached. Anything still in the outbound queue
- * hasn't landed there yet, so it survives the merge even when the server copy is silent
- * about it — otherwise a movement entered offline would vanish the moment sync ran.
+ * Pulls must not erase an optimistic local write. A foreground sync can overlap the
+ * enqueue/flush started by the same confirmation, so a stale remote list is not
+ * authoritative for rows that only exist locally yet.
  */
 function mergeRemote<T extends { id: string }>(local: T[], remote: T[], pendingIds: Set<string>): T[] {
-  const stillPending = local.filter((item) => pendingIds.has(item.id) && !remote.some((row) => row.id === item.id));
-  return [...remote, ...stillPending];
+  const remoteIds = new Set(remote.map((row) => row.id));
+  const stillLocal = local.filter((item) => pendingIds.has(item.id) || !remoteIds.has(item.id));
+  return [...remote, ...stillLocal];
 }
 
 export function PrototypeProvider({ children }: PropsWithChildren) {

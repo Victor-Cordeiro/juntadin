@@ -1,9 +1,13 @@
 import type { TransactionProposal } from '@juntadin/contracts';
 
-import { addRecurrence, parseISODate, toISODate } from '@/lib/dates';
-import { uuid } from '@/lib/uuid';
+import { addMonthsClamped, parseISODate, toISODate } from './dates';
+import { uuid } from './uuid';
 
 export const installmentOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 24];
+
+export function isValidInstallmentCount(count: number): boolean {
+  return Number.isInteger(count) && count >= 2 && count <= 60;
+}
 
 /**
  * Splits a purchase into equal monthly slices.
@@ -24,7 +28,8 @@ export function installmentDates(startDate: string, count: number): string[] {
   let cursor = startDate;
   for (let index = 0; index < count; index += 1) {
     dates.push(cursor);
-    cursor = addRecurrence(cursor, 'monthly');
+    const parsed = parseISODate(cursor);
+    cursor = parsed ? addMonthsClamped(parsed, 1) : cursor;
   }
   return dates;
 }
@@ -35,6 +40,7 @@ export function installmentDates(startDate: string, count: number): string[] {
  * without knowing installments exist.
  */
 export function buildInstallmentTransactions(proposal: TransactionProposal, count: number) {
+  if (!isValidInstallmentCount(count)) throw new Error('Invalid installment count');
   const amounts = splitInstallments(proposal.amountCents, count);
   const dates = installmentDates(proposal.localDate, count);
   const purchaseId = uuid();

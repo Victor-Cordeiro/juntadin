@@ -53,8 +53,8 @@ export type FlushResult = { sent: number; pending: number; offline: boolean };
  * the rest queued — nothing is dropped, so a movement entered with no signal survives
  * until it reaches the server.
  *
- * A row the server rejects on its own terms (a validation error, an already deleted
- * row) is discarded instead of blocking the queue forever.
+ * Server-side failures are retained as well. A financial movement must never vanish
+ * locally just because the first write was rejected; the next sync cycle can retry it.
  */
 export async function flushQueue(userId: string, spaceId: string): Promise<FlushResult> {
   const operations = [...(await readQueue(userId))].sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
@@ -70,12 +70,15 @@ export async function flushQueue(userId: string, spaceId: string): Promise<Flush
       remaining.shift();
       sent += 1;
     } catch (error) {
+      console.error('transaction_sync_failed', error instanceof Error ? error.message : String(error));
       if (isNetworkError(error)) {
         await writeQueue(userId, remaining);
         return { sent, pending: remaining.length, offline: true };
       }
-      // The server understood and refused: retrying forever would wedge the queue.
-      remaining.shift();
+      // Keep every failed operation. Dropping it here would make a confirmed
+      // movement disappear during the next remote merge.
+      await writeQueue(userId, remaining);
+      return { sent, pending: remaining.length, offline: true };
     }
   }
 

@@ -61,7 +61,8 @@ export async function flushBillsQueue(userId: string, spaceId: string): Promise<
         await writeQueue(userId, remaining);
         return { sent, pending: remaining.length, offline: true };
       }
-      remaining.shift();
+      await writeQueue(userId, remaining);
+      return { sent, pending: remaining.length, offline: true };
     }
   }
 
